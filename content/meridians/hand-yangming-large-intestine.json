@@ -1,0 +1,1169 @@
+{
+  "schemaVersion": "0.1.0",
+  "id": "LI",
+  "name": "手阳明大肠经",
+  "shortName": "大肠经",
+  "element": "金",
+  "organ": "大肠",
+  "river": {
+    "name": "江水",
+    "source": "《灵枢·经水》"
+  },
+  "schedule": {
+    "branch": "卯",
+    "startHour": 5,
+    "endHour": 7
+  },
+  "palette": {
+    "primary": "#D9D2BF",
+    "accent": "#B08A4F",
+    "water": "#7C9AA6"
+  },
+  "points": [
+    {
+      "code": "LI1",
+      "name": "商阳",
+      "pinyin": "Shāngyáng",
+      "meridian": "LI",
+      "order": 1,
+      "location": "食指末节桡侧，指甲根角侧上方0.1寸",
+      "anchor": {
+        "frame": "hand.R",
+        "local": [
+          0.1593,
+          0.0021,
+          0.0311
+        ],
+        "normal": [
+          0.0,
+          0.548,
+          0.837
+        ]
+      },
+      "anchorStatus": "authored",
+      "wushu": {
+        "stage": "井",
+        "element": "金"
+      },
+      "roles": [],
+      "image": {
+        "tokens": [
+          "商",
+          "阳"
+        ],
+        "archetype": "well",
+        "params": {
+          "depth": 0.4,
+          "upwelling": 0.85,
+          "aperture": 0.3,
+          "damp": 0.5
+        },
+        "modifiers": [
+          "sunlit",
+          "metallic",
+          "source"
+        ],
+        "seed": 10401
+      },
+      "text": {
+        "literal": "商，五音之商，属金；阳，向阳、在外。",
+        "imagery": "食指末端，如山脊尽头的向阳石隙；秋金之气从石缝中初出，细而不绝。",
+        "qi": "井穴，手阳明脉气所出。如水之初涌，是整条江水的源头。",
+        "function": "传统用于发热、咽喉肿痛、齿痛等。",
+        "classics": [
+          {
+            "source": "《灵枢·本输》",
+            "note": "手阳明井穴"
+          },
+          {
+            "source": "《针灸大成》",
+            "note": "商阳主治条目"
+          }
+        ],
+        "sceneCue": "指尖尽头的向阳石隙，一线泉水初出。"
+      }
+    },
+    {
+      "code": "LI2",
+      "name": "二间",
+      "pinyin": "Èrjiān",
+      "meridian": "LI",
+      "order": 2,
+      "location": "第2掌指关节桡侧前方，赤白肉际凹陷处",
+      "anchor": {
+        "frame": "hand.R",
+        "local": [
+          0.07,
+          0.012,
+          0.008
+        ],
+        "normal": [
+          0.1,
+          0.95,
+          0.2
+        ]
+      },
+      "anchorStatus": "placeholder",
+      "wushu": {
+        "stage": "荥",
+        "element": "水"
+      },
+      "roles": [],
+      "image": {
+        "tokens": [
+          "二",
+          "间"
+        ],
+        "archetype": "gully",
+        "params": {
+          "width": 0.3,
+          "depth": 0.25,
+          "turbulence": 0.3,
+          "shade": 0.2
+        },
+        "modifiers": [
+          "crevice",
+          "shallow"
+        ],
+        "seed": 10402
+      },
+      "text": {
+        "literal": "二，序数；间，缝隙、间隙。",
+        "imagery": "第二掌指关节前的石缝，水从缝间渗出，聚成一道细流。",
+        "qi": "荥穴，脉气稍盛，如浅溪初成，涓涓有声。",
+        "function": "传统用于齿痛、咽喉肿痛、鼻衄等。",
+        "classics": [
+          {
+            "source": "《灵枢·本输》",
+            "note": "手阳明荥穴"
+          }
+        ],
+        "sceneCue": "指节前的石缝浅溪，水声细碎。"
+      }
+    },
+    {
+      "code": "LI3",
+      "name": "三间",
+      "pinyin": "Sānjiān",
+      "meridian": "LI",
+      "order": 3,
+      "location": "第2掌指关节桡侧后方，赤白肉际凹陷处",
+      "anchor": {
+        "frame": "hand.R",
+        "local": [
+          0.092,
+          0.011319,
+          0.0295
+        ],
+        "normal": [
+          0.052,
+          0.964,
+          0.259
+        ]
+      },
+      "anchorStatus": "authored",
+      "wushu": {
+        "stage": "输",
+        "element": "木"
+      },
+      "roles": [],
+      "image": {
+        "tokens": [
+          "三",
+          "间"
+        ],
+        "archetype": "gully",
+        "params": {
+          "width": 0.42,
+          "depth": 0.3,
+          "turbulence": 0.35,
+          "shade": 0.25
+        },
+        "modifiers": [
+          "crevice",
+          "gravel"
+        ],
+        "seed": 10403
+      },
+      "text": {
+        "literal": "三，序数；间，间隙。",
+        "imagery": "掌指关节后的碎石滩，溪水在此散开，漫过卵石。",
+        "qi": "输穴，脉气渐深，如溪流汇注，开始有滩有岸。",
+        "function": "传统用于齿痛、咽喉肿痛、腹胀等。",
+        "classics": [
+          {
+            "source": "《灵枢·本输》",
+            "note": "手阳明输穴"
+          }
+        ],
+        "sceneCue": "掌指关节后的碎石滩，溪水散开。"
+      }
+    },
+    {
+      "code": "LI4",
+      "name": "合谷",
+      "pinyin": "Hégǔ",
+      "meridian": "LI",
+      "order": 4,
+      "location": "手背，第1、2掌骨间，第2掌骨桡侧的中点处",
+      "anchor": {
+        "frame": "hand.R",
+        "local": [
+          0.052,
+          0.011065,
+          0.028
+        ],
+        "normal": [
+          0.069,
+          0.992,
+          0.105
+        ]
+      },
+      "anchorStatus": "authored",
+      "wushu": null,
+      "roles": [
+        "原"
+      ],
+      "image": {
+        "tokens": [
+          "合",
+          "谷"
+        ],
+        "archetype": "valley",
+        "params": {
+          "ridgeHeight": 0.7,
+          "ridgeDistance": 0.45,
+          "convergence": 0.9,
+          "mist": 0.65,
+          "pool": 0.5,
+          "wind": 0.7
+        },
+        "modifiers": [
+          "convergence+",
+          "spring@bottom",
+          "sunlit"
+        ],
+        "seed": 10404
+      },
+      "text": {
+        "literal": "合，两山相合；谷，两山之间的低地。",
+        "imagery": "第1、2掌骨如山脊并立，虎口凹陷处即谷。经气至此，如众水归谷，聚而不散。",
+        "qi": "原穴。谷为风道，亦为隘口；气聚于谷，能开能阖。",
+        "function": "传统用于头面五官、发热、疼痛等；四总穴歌云「面口合谷收」。",
+        "classics": [
+          {
+            "source": "《灵枢·本输》",
+            "note": "手阳明原穴"
+          },
+          {
+            "source": "《四总穴歌》",
+            "quote": "面口合谷收"
+          },
+          {
+            "source": "《针灸大成》",
+            "note": "合谷主治条目"
+          }
+        ],
+        "sceneCue": "双脊夹谷，雾从谷口涌入，水在谷底汇成浅潭。"
+      }
+    },
+    {
+      "code": "LI5",
+      "name": "阳溪",
+      "pinyin": "Yángxī",
+      "meridian": "LI",
+      "order": 5,
+      "location": "腕背横纹桡侧，拇指上翘时两筋之间的凹陷处",
+      "anchor": {
+        "frame": "hand.R",
+        "local": [
+          0.004,
+          0.007198,
+          0.034
+        ],
+        "normal": [
+          -0.288,
+          0.936,
+          0.202
+        ]
+      },
+      "anchorStatus": "authored",
+      "wushu": {
+        "stage": "经",
+        "element": "火"
+      },
+      "roles": [],
+      "image": {
+        "tokens": [
+          "阳",
+          "溪"
+        ],
+        "archetype": "stream",
+        "params": {
+          "width": 0.4,
+          "turbulence": 0.5,
+          "clarity": 0.9,
+          "sunlight": 0.9
+        },
+        "modifiers": [
+          "sunlit",
+          "between-tendons"
+        ],
+        "seed": 10405
+      },
+      "text": {
+        "literal": "阳，向阳；溪，山间小水。",
+        "imagery": "腕背两筋如峡，阳光斜照，溪水碎成金片。",
+        "qi": "经穴，脉气正行，如溪入河渠，有航道。",
+        "function": "传统用于头痛、齿痛、腕臂痛等。",
+        "classics": [
+          {
+            "source": "《灵枢·本输》",
+            "note": "手阳明经穴"
+          }
+        ],
+        "sceneCue": "腕间两筋如峡，阳光碎在水面。"
+      }
+    },
+    {
+      "code": "LI6",
+      "name": "偏历",
+      "pinyin": "Piānlì",
+      "meridian": "LI",
+      "order": 6,
+      "location": "阳溪与曲池连线上，腕背横纹上3寸",
+      "anchor": {
+        "frame": "forearm.R",
+        "local": [
+          0.035,
+          0.018,
+          0.01
+        ],
+        "normal": [
+          0.1,
+          0.9,
+          0.3
+        ]
+      },
+      "anchorStatus": "placeholder",
+      "wushu": null,
+      "roles": [
+        "络"
+      ],
+      "image": {
+        "tokens": [
+          "偏",
+          "历"
+        ],
+        "archetype": "stream",
+        "params": {
+          "width": 0.45,
+          "turbulence": 0.4,
+          "clarity": 0.7,
+          "sunlight": 0.5
+        },
+        "modifiers": [
+          "branch",
+          "ford"
+        ],
+        "seed": 10406
+      },
+      "text": {
+        "literal": "偏，偏离；历，经过、历法。",
+        "imagery": "主道旁的一条支流，水在此分叉，又在下游汇回。",
+        "qi": "络穴，别走手太阴；如渡口分水，主客之间往来。",
+        "function": "传统用于鼻衄、齿痛、手臂酸痛等。",
+        "classics": [
+          {
+            "source": "《灵枢·经脉》",
+            "note": "手阳明络脉"
+          }
+        ],
+        "sceneCue": "偏离主道的渡口，水声分叉。"
+      }
+    },
+    {
+      "code": "LI7",
+      "name": "温溜",
+      "pinyin": "Wēnliū",
+      "meridian": "LI",
+      "order": 7,
+      "location": "阳溪与曲池连线上，腕背横纹上5寸",
+      "anchor": {
+        "frame": "forearm.R",
+        "local": [
+          0.015,
+          0.016,
+          0.01
+        ],
+        "normal": [
+          0.1,
+          0.95,
+          0.3
+        ]
+      },
+      "anchorStatus": "placeholder",
+      "wushu": null,
+      "roles": [
+        "郄"
+      ],
+      "image": {
+        "tokens": [
+          "温",
+          "溜"
+        ],
+        "archetype": "stream",
+        "params": {
+          "width": 0.5,
+          "turbulence": 0.2,
+          "clarity": 0.6,
+          "sunlight": 0.3
+        },
+        "modifiers": [
+          "warm",
+          "slow"
+        ],
+        "seed": 10407
+      },
+      "text": {
+        "literal": "温，温暖；溜，水流缓处。",
+        "imagery": "前臂的缓流，水汽带着地温，冬天也不结冰。",
+        "qi": "郄穴，脉气深聚；如温泉缓溜，外静内动。",
+        "function": "传统用于腹痛、咽喉肿痛、手臂酸痛等。",
+        "classics": [
+          {
+            "source": "《针灸甲乙经》",
+            "note": "手阳明郄穴"
+          }
+        ],
+        "sceneCue": "前臂缓流，水汽带暖。"
+      }
+    },
+    {
+      "code": "LI8",
+      "name": "下廉",
+      "pinyin": "Xiàlián",
+      "meridian": "LI",
+      "order": 8,
+      "location": "曲池下4寸，阳溪与曲池连线上",
+      "anchor": {
+        "frame": "forearm.R",
+        "local": [
+          -0.01,
+          0.014,
+          0.01
+        ],
+        "normal": [
+          0.1,
+          0.9,
+          0.4
+        ]
+      },
+      "anchorStatus": "placeholder",
+      "wushu": null,
+      "roles": [],
+      "image": {
+        "tokens": [
+          "下",
+          "廉"
+        ],
+        "archetype": "ridge",
+        "params": {
+          "height": 0.35,
+          "sharpness": 0.5,
+          "exposure": 0.5
+        },
+        "modifiers": [
+          "edge",
+          "lower"
+        ],
+        "seed": 10408
+      },
+      "text": {
+        "literal": "下，下方；廉，侧边、棱角。",
+        "imagery": "前臂下缘的崖线，风从崖下掠过，带着土腥气。",
+        "qi": "脉气沿前臂下缘下行，如行崖边。",
+        "function": "传统用于头痛、眩晕、手臂痛等。",
+        "classics": [
+          {
+            "source": "《针灸甲乙经》",
+            "note": "下廉定位"
+          }
+        ],
+        "sceneCue": "前臂下缘的崖线，风从崖下过。"
+      }
+    },
+    {
+      "code": "LI9",
+      "name": "上廉",
+      "pinyin": "Shànglián",
+      "meridian": "LI",
+      "order": 9,
+      "location": "曲池下3寸，阳溪与曲池连线上",
+      "anchor": {
+        "frame": "forearm.R",
+        "local": [
+          -0.02,
+          0.015,
+          0.01
+        ],
+        "normal": [
+          0.1,
+          0.9,
+          0.4
+        ]
+      },
+      "anchorStatus": "placeholder",
+      "wushu": null,
+      "roles": [],
+      "image": {
+        "tokens": [
+          "上",
+          "廉"
+        ],
+        "archetype": "ridge",
+        "params": {
+          "height": 0.45,
+          "sharpness": 0.6,
+          "exposure": 0.8
+        },
+        "modifiers": [
+          "edge",
+          "upper"
+        ],
+        "seed": 10409
+      },
+      "text": {
+        "literal": "上，上方；廉，侧边、棱角。",
+        "imagery": "前臂上缘的崖线，云在崖上走，风比崖下更硬。",
+        "qi": "脉气沿前臂上缘上行，如行山脊。",
+        "function": "传统用于头痛、半身不遂、手臂麻木等。",
+        "classics": [
+          {
+            "source": "《针灸甲乙经》",
+            "note": "上廉定位"
+          }
+        ],
+        "sceneCue": "前臂上缘的崖线，云在崖上走。"
+      }
+    },
+    {
+      "code": "LI10",
+      "name": "手三里",
+      "pinyin": "Shǒusānlǐ",
+      "meridian": "LI",
+      "order": 10,
+      "location": "曲池下2寸，阳溪与曲池连线上",
+      "anchor": {
+        "frame": "forearm.R",
+        "local": [
+          -0.035,
+          0.014,
+          0.008
+        ],
+        "normal": [
+          0.1,
+          0.9,
+          0.4
+        ]
+      },
+      "anchorStatus": "placeholder",
+      "wushu": null,
+      "roles": [],
+      "image": {
+        "tokens": [
+          "手",
+          "三",
+          "里"
+        ],
+        "archetype": "station",
+        "params": {
+          "density": 0.4,
+          "warmth": 0.6,
+          "light": 0.5
+        },
+        "modifiers": [
+          "waypoint",
+          "village"
+        ],
+        "seed": 10410
+      },
+      "text": {
+        "literal": "手，上肢；三里，三寸里程，亦指村落。",
+        "imagery": "上臂的河湾处，有一处驿站，灯火在暮色里亮起。",
+        "qi": "脉气至此如行旅歇脚，气血充盈，再向上行。",
+        "function": "传统用于手臂酸痛、腹痛、齿痛等。",
+        "classics": [
+          {
+            "source": "《针灸甲乙经》",
+            "note": "手三里定位"
+          }
+        ],
+        "sceneCue": "河湾边的驿站，一盏灯。"
+      }
+    },
+    {
+      "code": "LI11",
+      "name": "曲池",
+      "pinyin": "Qūchí",
+      "meridian": "LI",
+      "order": 11,
+      "location": "屈肘成直角，肘横纹外端与肱骨外上髁连线的中点",
+      "anchor": {
+        "frame": "forearm.R",
+        "local": [
+          0.004,
+          0.005154,
+          0.031823
+        ],
+        "normal": [
+          0.0,
+          0.259,
+          0.966
+        ]
+      },
+      "anchorStatus": "authored",
+      "wushu": {
+        "stage": "合",
+        "element": "土"
+      },
+      "roles": [],
+      "image": {
+        "tokens": [
+          "曲",
+          "池"
+        ],
+        "archetype": "pool",
+        "params": {
+          "radius": 0.7,
+          "depth": 0.6,
+          "stillness": 0.9,
+          "reflection": 0.8,
+          "warmth": 0.6
+        },
+        "modifiers": [
+          "bend",
+          "mirror",
+          "confluence"
+        ],
+        "seed": 10411
+      },
+      "text": {
+        "literal": "曲，弯曲；池，水所聚。",
+        "imagery": "屈肘处，河道随肘弯折，水流回旋，聚成一潭；水面如镜，倒映天光。",
+        "qi": "合穴，脉气入于肘弯，如百川归池，深而缓，去而不返。",
+        "function": "传统用于发热、咽痛、上肢痹痛、皮肤病等。",
+        "classics": [
+          {
+            "source": "《灵枢·本输》",
+            "note": "手阳明合穴"
+          },
+          {
+            "source": "《针灸甲乙经》",
+            "note": "曲池定位"
+          }
+        ],
+        "sceneCue": "肘弯大河回旋，聚成深池，水面如镜。"
+      }
+    },
+    {
+      "code": "LI12",
+      "name": "肘髎",
+      "pinyin": "Zhǒuliáo",
+      "meridian": "LI",
+      "order": 12,
+      "location": "曲池外上方1寸，肱骨外上髁上缘",
+      "anchor": {
+        "frame": "forearm.R",
+        "local": [
+          -0.085,
+          0.02,
+          0.0
+        ],
+        "normal": [
+          0.3,
+          0.6,
+          0.5
+        ]
+      },
+      "anchorStatus": "placeholder",
+      "wushu": null,
+      "roles": [],
+      "image": {
+        "tokens": [
+          "肘",
+          "髎"
+        ],
+        "archetype": "cave",
+        "params": {
+          "aperture": 0.3,
+          "depth": 0.6,
+          "damp": 0.8,
+          "glow": 0.2
+        },
+        "modifiers": [
+          "bone-crevice",
+          "hidden-spring"
+        ],
+        "seed": 10412
+      },
+      "text": {
+        "literal": "肘，肘部；髎，骨节间的空隙。",
+        "imagery": "肘骨缝隙里的一眼暗泉，水声在骨腔里回响。",
+        "qi": "脉气出于骨缝，深而不显。",
+        "function": "传统用于肘臂痛、麻木、挛急等。",
+        "classics": [
+          {
+            "source": "《针灸甲乙经》",
+            "note": "肘髎定位"
+          }
+        ],
+        "sceneCue": "肘骨缝隙，暗泉。"
+      }
+    },
+    {
+      "code": "LI13",
+      "name": "手五里",
+      "pinyin": "Shǒuwǔlǐ",
+      "meridian": "LI",
+      "order": 13,
+      "location": "曲池上3寸，曲池与肩髃连线上",
+      "anchor": {
+        "frame": "upperarm.R",
+        "local": [
+          0.015,
+          0.02,
+          0.005
+        ],
+        "normal": [
+          0.2,
+          0.8,
+          0.4
+        ]
+      },
+      "anchorStatus": "placeholder",
+      "wushu": null,
+      "roles": [],
+      "image": {
+        "tokens": [
+          "手",
+          "五",
+          "里"
+        ],
+        "archetype": "station",
+        "params": {
+          "density": 0.3,
+          "warmth": 0.5,
+          "light": 0.3
+        },
+        "modifiers": [
+          "milestone",
+          "road"
+        ],
+        "seed": 10413
+      },
+      "text": {
+        "literal": "五里，里程；里，居所、村落。",
+        "imagery": "上臂的里程碑，路旁一块石碑，字已被风磨浅。",
+        "qi": "脉气上行，如驿路，过站而不停。",
+        "function": "传统用于肘臂挛痛、瘰疬等。",
+        "classics": [
+          {
+            "source": "《针灸甲乙经》",
+            "note": "手五里定位"
+          }
+        ],
+        "sceneCue": "上臂的里程碑，路标。"
+      }
+    },
+    {
+      "code": "LI14",
+      "name": "臂臑",
+      "pinyin": "Bìnào",
+      "meridian": "LI",
+      "order": 14,
+      "location": "曲池与肩髃连线上，三角肌止点处",
+      "anchor": {
+        "frame": "upperarm.R",
+        "local": [
+          0.06,
+          0.025,
+          0.005
+        ],
+        "normal": [
+          0.2,
+          0.7,
+          0.5
+        ]
+      },
+      "anchorStatus": "placeholder",
+      "wushu": null,
+      "roles": [],
+      "image": {
+        "tokens": [
+          "臂",
+          "臑"
+        ],
+        "archetype": "flora",
+        "params": {
+          "density": 0.7,
+          "height": 0.2,
+          "wind": 0.6,
+          "fragrance": 0.2
+        },
+        "modifiers": [
+          "meadow",
+          "soft-flesh"
+        ],
+        "seed": 10414
+      },
+      "text": {
+        "literal": "臂，上肢；臑，牲畜前肢的软肉。",
+        "imagery": "上臂的软肉如草甸，风过时草伏成浪。",
+        "qi": "脉气行于肌肉之间，柔和而缓。",
+        "function": "传统用于肩臂痛、颈项拘挛等。",
+        "classics": [
+          {
+            "source": "《针灸甲乙经》",
+            "note": "臂臑定位"
+          }
+        ],
+        "sceneCue": "上臂软肉如草甸，风低草伏。"
+      }
+    },
+    {
+      "code": "LI15",
+      "name": "肩髃",
+      "pinyin": "Jiānyú",
+      "meridian": "LI",
+      "order": 15,
+      "location": "肩峰前下方，三角肌上部，肩平举时出现的前方凹陷处",
+      "anchor": {
+        "frame": "upperarm.R",
+        "local": [
+          0.13,
+          0.03,
+          0.0
+        ],
+        "normal": [
+          0.3,
+          0.5,
+          0.6
+        ]
+      },
+      "anchorStatus": "placeholder",
+      "wushu": null,
+      "roles": [],
+      "image": {
+        "tokens": [
+          "肩",
+          "髃"
+        ],
+        "archetype": "pass",
+        "params": {
+          "gateHeight": 0.5,
+          "narrowness": 0.5,
+          "wind": 0.8,
+          "structure": 0.1
+        },
+        "modifiers": [
+          "shoulder-corner",
+          "wind-gap"
+        ],
+        "seed": 10415
+      },
+      "text": {
+        "literal": "肩，肩部；髃，肩前骨角。",
+        "imagery": "肩峰转角，风大，云被撕开一道口子。",
+        "qi": "脉气过肩，如过关；此处开阔，气易散。",
+        "function": "传统用于肩臂痛、上肢不遂等。",
+        "classics": [
+          {
+            "source": "《针灸甲乙经》",
+            "note": "肩髃定位"
+          }
+        ],
+        "sceneCue": "肩峰转角，风大，云被撕开。"
+      }
+    },
+    {
+      "code": "LI16",
+      "name": "巨骨",
+      "pinyin": "Jùgǔ",
+      "meridian": "LI",
+      "order": 16,
+      "location": "锁骨肩峰端与肩胛冈之间的凹陷处",
+      "anchor": {
+        "frame": "shoulder.R",
+        "local": [
+          0.01,
+          0.01,
+          0.0
+        ],
+        "normal": [
+          0.2,
+          0.8,
+          0.3
+        ]
+      },
+      "anchorStatus": "placeholder",
+      "wushu": null,
+      "roles": [],
+      "image": {
+        "tokens": [
+          "巨",
+          "骨"
+        ],
+        "archetype": "peak",
+        "params": {
+          "height": 0.65,
+          "exposure": 0.75,
+          "cloud": 0.4
+        },
+        "modifiers": [
+          "megalith",
+          "bone",
+          "ridge"
+        ],
+        "seed": 10416
+      },
+      "text": {
+        "literal": "巨，大；骨，骨骼。",
+        "imagery": "锁骨与肩胛之间，巨石成阵，像远古留下的骨架。",
+        "qi": "脉气行于巨骨之间，厚重而滞。",
+        "function": "传统用于肩背痛、臂不举等。",
+        "classics": [
+          {
+            "source": "《针灸甲乙经》",
+            "note": "巨骨定位"
+          }
+        ],
+        "sceneCue": "锁骨与肩胛之间的巨石阵。"
+      }
+    },
+    {
+      "code": "LI17",
+      "name": "天鼎",
+      "pinyin": "Tiāndǐng",
+      "meridian": "LI",
+      "order": 17,
+      "location": "胸锁乳突肌后缘，扶突与缺盆连线中点",
+      "anchor": {
+        "frame": "neck.R",
+        "local": [
+          0.0,
+          0.02,
+          -0.01
+        ],
+        "normal": [
+          0.4,
+          0.7,
+          0.2
+        ]
+      },
+      "anchorStatus": "placeholder",
+      "wushu": null,
+      "roles": [],
+      "image": {
+        "tokens": [
+          "天",
+          "鼎"
+        ],
+        "archetype": "vessel",
+        "params": {
+          "scale": 0.7,
+          "metalness": 0.8,
+          "tripod": 1.0,
+          "sound": 0.5
+        },
+        "modifiers": [
+          "sky",
+          "tripod",
+          "bronze"
+        ],
+        "seed": 10417
+      },
+      "text": {
+        "literal": "天，高处；鼎，三足两耳之器。",
+        "imagery": "颈侧高处，一座三足鼎立于云中，像擎天的祭器。",
+        "qi": "脉气上行至颈，如鼎之承天，稳重而升。",
+        "function": "传统用于咽喉肿痛、瘰疬、颈项强痛等。",
+        "classics": [
+          {
+            "source": "《针灸甲乙经》",
+            "note": "天鼎定位"
+          }
+        ],
+        "sceneCue": "颈侧高处的三足鼎，云气环绕。"
+      }
+    },
+    {
+      "code": "LI18",
+      "name": "扶突",
+      "pinyin": "Fútū",
+      "meridian": "LI",
+      "order": 18,
+      "location": "喉结旁开3寸，胸锁乳突肌前后缘之间",
+      "anchor": {
+        "frame": "neck.R",
+        "local": [
+          0.02,
+          0.015,
+          -0.005
+        ],
+        "normal": [
+          0.5,
+          0.6,
+          0.3
+        ]
+      },
+      "anchorStatus": "placeholder",
+      "wushu": null,
+      "roles": [],
+      "image": {
+        "tokens": [
+          "扶",
+          "突"
+        ],
+        "archetype": "peak",
+        "params": {
+          "height": 0.55,
+          "exposure": 0.8,
+          "cloud": 0.3
+        },
+        "modifiers": [
+          "knoll",
+          "gate",
+          "supported"
+        ],
+        "seed": 10418
+      },
+      "text": {
+        "literal": "扶，扶持；突，凸起。",
+        "imagery": "一座被扶持而起的孤峰，是颈侧的关隘。",
+        "qi": "脉气上扶，突出于颈，如关隘之守。",
+        "function": "传统用于咽喉肿痛、暴喑、瘰疬等。",
+        "classics": [
+          {
+            "source": "《针灸甲乙经》",
+            "note": "扶突定位"
+          }
+        ],
+        "sceneCue": "扶持而起的孤峰与关隘。"
+      }
+    },
+    {
+      "code": "LI19",
+      "name": "口禾髎",
+      "pinyin": "Kǒuhéliáo",
+      "meridian": "LI",
+      "order": 19,
+      "location": "鼻孔外缘直下，平水沟穴处",
+      "anchor": {
+        "frame": "head.R",
+        "local": [
+          0.02,
+          -0.01,
+          0.04
+        ],
+        "normal": [
+          0.2,
+          0.3,
+          0.9
+        ]
+      },
+      "anchorStatus": "placeholder",
+      "wushu": null,
+      "roles": [],
+      "image": {
+        "tokens": [
+          "口",
+          "禾",
+          "髎"
+        ],
+        "archetype": "cave",
+        "params": {
+          "aperture": 0.4,
+          "depth": 0.3,
+          "damp": 0.5,
+          "glow": 0.3
+        },
+        "modifiers": [
+          "grainfield",
+          "aperture",
+          "face"
+        ],
+        "seed": 10419
+      },
+      "text": {
+        "literal": "口，口部；禾，嘉谷；髎，骨孔。",
+        "imagery": "鼻旁的一片禾田，田边有孔窍，风从孔中穿过。",
+        "qi": "脉气出于鼻旁骨孔，细而密。",
+        "function": "传统用于鼻塞、鼻衄、口喎等。",
+        "classics": [
+          {
+            "source": "《针灸甲乙经》",
+            "note": "口禾髎定位"
+          }
+        ],
+        "sceneCue": "鼻旁谷地，禾田与孔窍。"
+      }
+    },
+    {
+      "code": "LI20",
+      "name": "迎香",
+      "pinyin": "Yíngxiāng",
+      "meridian": "LI",
+      "order": 20,
+      "location": "鼻翼外缘中点旁，鼻唇沟中",
+      "anchor": {
+        "frame": "head.R",
+        "local": [
+          0.03,
+          -0.02,
+          0.045
+        ],
+        "normal": [
+          0.3,
+          0.2,
+          0.9
+        ]
+      },
+      "anchorStatus": "placeholder",
+      "wushu": null,
+      "roles": [],
+      "image": {
+        "tokens": [
+          "迎",
+          "香"
+        ],
+        "archetype": "flora",
+        "params": {
+          "density": 0.8,
+          "height": 0.3,
+          "wind": 0.7,
+          "fragrance": 0.9
+        },
+        "modifiers": [
+          "fragrance",
+          "gate",
+          "breeze"
+        ],
+        "seed": 10420
+      },
+      "text": {
+        "literal": "迎，逢迎、迎接；香，芬芳。",
+        "imagery": "面颊崖畔的一条花径，风把香气送来，气在此散开。",
+        "qi": "脉气终于鼻旁，如风送香，散而不返。",
+        "function": "传统用于鼻塞、鼻衄、面痒等。",
+        "classics": [
+          {
+            "source": "《针灸甲乙经》",
+            "note": "迎香定位"
+          }
+        ],
+        "sceneCue": "面颊崖畔的花径，风送香气，气散成光。"
+      }
+    }
+  ]
+}

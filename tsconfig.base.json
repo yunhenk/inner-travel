@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": false,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": false,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@inner/core": ["packages/core/src/index.ts"],
+      "@inner/core/*": ["packages/core/src/*"],
+      "@inner/scene-gen": ["packages/scene-gen/src/index.ts"],
+      "@inner/scene-gen/*": ["packages/scene-gen/src/*"],
+      "@inner/render": ["packages/render/src/index.ts"],
+      "@inner/render/*": ["packages/render/src/*"]
+    }
+  }
+}

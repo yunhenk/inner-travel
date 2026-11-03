@@ -1,0 +1,17 @@
+{
+  "name": "@inner/render",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@inner/core": "workspace:*",
+    "@inner/scene-gen": "workspace:*",
+    "three": "^0.187.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.187.0"
+  }
+}

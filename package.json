@@ -1,0 +1,26 @@
+{
+  "name": "meridian-drift",
+  "version": "0.1.0",
+  "private": true,
+  "description": "\u6e38\u8109\u5c71\u6cb3 \u00b7 Meridian Drift \u2014 \u4eba\u4f53\u7ecf\u7edc\u52a8\u6001\u53ef\u89c6\u5316",
+  "type": "module",
+  "packageManager": "pnpm@10.33.4",
+  "scripts": {
+    "dev": "pnpm --filter @inner/web dev",
+    "build": "pnpm --filter @inner/web build",
+    "preview": "pnpm --filter @inner/web preview",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "content:validate": "tsx tools/content/validate.ts",
+    "content:build": "tsx tools/content/validate.ts --publish",
+    "screenshot": "node scripts/screenshot.mjs",
+    "bench": "tsx scripts/bench.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
+  }
+}

@@ -1,0 +1,562 @@
+:root {
+  --paper: #efe8d7;
+  --paper-deep: #e4dbc4;
+  --ink: #2c2f28;
+  --ink-soft: #5d5f52;
+  --ink-faint: #8b8a7a;
+  --accent: #a8763f;
+  --line: rgba(60, 58, 46, 0.16);
+  --panel: rgba(246, 241, 229, 0.82);
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  background: var(--paper);
+}
+
+body {
+  color: var(--ink);
+  font-family: ui-sans-serif, -apple-system, "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+.app {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: radial-gradient(120% 90% at 50% 20%, #f7f2e5 0%, #e9e1cf 55%, #ddd2b8 100%);
+}
+
+.canvas-host {
+  position: absolute;
+  inset: 0;
+}
+
+.canvas-host canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.paper-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.32;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.3'/%3E%3C/svg%3E");
+  background-size: 240px 240px;
+}
+
+.vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    120% 100% at 50% 44%,
+    transparent 42%,
+    rgba(59, 53, 40, 0.14) 76%,
+    rgba(42, 37, 27, 0.32) 100%
+  );
+}
+
+.brand {
+  position: absolute;
+  top: 28px;
+  left: 32px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  pointer-events: none;
+}
+
+.brand-mark {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(168, 118, 63, 0.55);
+  border-radius: 50%;
+  font-family: "Songti SC", "STSong", "Noto Serif CJK SC", serif;
+  font-size: 22px;
+  color: var(--accent);
+  background: rgba(168, 118, 63, 0.06);
+  box-shadow: inset 0 0 0 3px rgba(239, 232, 215, 0.6);
+}
+
+.brand h1 {
+  margin: 0;
+  font-family: "Songti SC", "STSong", "Noto Serif CJK SC", serif;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+}
+
+.brand p {
+  margin: 4px 0 0;
+  font-size: 9.5px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.brand .dot {
+  opacity: 0.5;
+}
+
+.stage-pill {
+  margin-left: 4px;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: var(--accent);
+  border: 1px solid rgba(168, 118, 63, 0.4);
+  border-radius: 999px;
+  padding: 3px 8px;
+}
+
+.panel {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  width: min(332px, calc(100vw - 48px));
+  max-height: calc(100vh - 90px);
+  overflow-y: auto;
+  padding: 20px 20px 14px;
+  background: var(--panel);
+  -webkit-backdrop-filter: blur(14px) saturate(1.05);
+  backdrop-filter: blur(14px) saturate(1.05);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 16px;
+  box-shadow:
+    0 22px 60px rgba(46, 42, 30, 0.16),
+    inset 0 0 0 1px rgba(120, 110, 90, 0.07);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(120, 110, 90, 0.3) transparent;
+}
+
+.panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.panel::-webkit-scrollbar-thumb {
+  background: rgba(120, 110, 90, 0.3);
+  border-radius: 3px;
+}
+
+.panel-head .eyebrow {
+  font-size: 9px;
+  letter-spacing: 0.32em;
+  color: var(--accent);
+}
+
+.panel-head h2 {
+  margin: 6px 0 2px;
+  font-family: "Songti SC", "STSong", "Noto Serif CJK SC", serif;
+  font-size: 27px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+.panel-head .code {
+  font-family: ui-sans-serif, sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--ink-faint);
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.tagline {
+  margin: 0;
+  font-family: "Songti SC", "STSong", serif;
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  color: var(--ink-soft);
+}
+
+.panel-section {
+  margin-top: 18px;
+}
+
+.panel-section h3 {
+  margin: 0 0 10px;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  color: var(--ink-faint);
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.segment {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 9px 4px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.32);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition:
+    background 0.25s ease,
+    color 0.25s ease,
+    border-color 0.25s ease,
+    transform 0.25s ease;
+}
+
+.segment:hover {
+  transform: translateY(-1px);
+  border-color: rgba(168, 118, 63, 0.45);
+}
+
+.segment-label {
+  font-family: "Songti SC", "STSong", serif;
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.segment-hint {
+  font-size: 8.5px;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+}
+
+.segment.active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.segment.active .segment-hint {
+  color: rgba(239, 232, 215, 0.62);
+}
+
+.slider {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.slider-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 5px;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+}
+
+.slider .value {
+  font-variant-numeric: tabular-nums;
+  font-size: 10.5px;
+  color: var(--ink);
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, rgba(60, 58, 46, 0.3), rgba(60, 58, 46, 0.12));
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid #f8f3e6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
+  cursor: pointer;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid #f8f3e6;
+  cursor: pointer;
+}
+
+input[type="range"]:focus-visible {
+  outline: 2px solid rgba(168, 118, 63, 0.55);
+  outline-offset: 4px;
+}
+
+.toggles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px 10px;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.toggle input {
+  width: 13px;
+  height: 13px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.card {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.card summary {
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  cursor: pointer;
+  font-family: "Songti SC", "STSong", serif;
+  font-size: 15px;
+  letter-spacing: 0.2em;
+}
+
+.card summary::-webkit-details-marker {
+  display: none;
+}
+
+.summary-hint {
+  font-family: ui-sans-serif, sans-serif;
+  font-size: 8.5px;
+  letter-spacing: 0.22em;
+  color: var(--ink-faint);
+}
+
+.card-body {
+  margin-top: 10px;
+  font-size: 12.5px;
+  line-height: 1.85;
+  color: var(--ink-soft);
+}
+
+.card-body p {
+  margin: 0 0 8px;
+}
+
+.card-label {
+  margin-bottom: 2px !important;
+  font-size: 8.5px;
+  letter-spacing: 0.3em;
+  color: var(--accent);
+}
+
+.muted {
+  color: var(--ink-faint);
+}
+
+.classics {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 9px 0 0;
+  border-top: 1px dashed var(--line);
+  display: grid;
+  gap: 4px;
+  font-size: 10.5px;
+}
+
+.classics li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--ink-faint);
+}
+
+.classics em {
+  font-style: normal;
+  color: var(--ink-soft);
+}
+
+.disclaimer {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+  font-size: 10px;
+  color: var(--ink-faint);
+}
+
+.panel-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 10px;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.ghost {
+  margin-left: auto;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: 10.5px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.hint {
+  position: absolute;
+  left: 32px;
+  bottom: 26px;
+  display: flex;
+  gap: 10px;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+  pointer-events: none;
+}
+
+.hint .sep {
+  opacity: 0.5;
+}
+
+.loading {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  background: var(--paper);
+  transition: opacity 0.9s ease;
+}
+
+.loading.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading-mark {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(168, 118, 63, 0.6);
+  border-radius: 50%;
+  font-family: "Songti SC", "STSong", serif;
+  font-size: 21px;
+  color: var(--accent);
+  animation: breathe 2.6s ease-in-out infinite;
+}
+
+.loading p {
+  margin: 0;
+  font-size: 10px;
+  letter-spacing: 0.34em;
+  color: var(--ink-faint);
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.68;
+  }
+}
+
+.error {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+  background: var(--paper);
+}
+
+.error h2 {
+  font-family: "Songti SC", "STSong", serif;
+  font-size: 22px;
+  letter-spacing: 0.1em;
+}
+
+.error p {
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.app-bare .canvas-host {
+  cursor: none;
+}
+
+@media (max-width: 820px) {
+  .brand {
+    top: 16px;
+    left: 16px;
+    gap: 10px;
+  }
+
+  .brand h1 {
+    font-size: 16px;
+  }
+
+  .brand-mark {
+    width: 38px;
+    height: 38px;
+    font-size: 18px;
+  }
+
+  .panel {
+    top: auto;
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    width: auto;
+    max-height: 46vh;
+    border-radius: 14px;
+  }
+
+  .hint {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
