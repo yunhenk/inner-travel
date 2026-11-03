@@ -119,6 +119,9 @@ export class SceneHost {
   private readonly codes: readonly string[];
   private corridor: CorridorMeshData | null = null;
   private layers: Layers | null = null;
+  private neighborCorridor: CorridorMeshData | null = null;
+  private neighborLayers: { terrain: TerrainView; water: WaterView } | null = null;
+  private neighborToken = 0;
   private params: SceneParams;
   private visibility: SceneVisibility;
   private mode: ViewMode;
@@ -420,6 +423,10 @@ export class SceneHost {
       this.layers.anchors.group.visible = true;
       this.layers.anchors.setActive(this.activeCode);
       this.armLine.group.visible = false;
+      if (this.neighborLayers) {
+        this.neighborLayers.terrain.group.visible = false;
+        this.neighborLayers.water.group.visible = false;
+      }
       return;
     }
     this.layers.body.setEmphasis(false);
@@ -431,6 +438,10 @@ export class SceneHost {
     this.layers.body.group.visible = this.visibility.body && this.mode === 'observe';
     this.layers.qi.group.visible = this.visibility.qi;
     this.layers.mist.group.visible = this.visibility.mist;
+    if (this.neighborLayers) {
+      this.neighborLayers.terrain.group.visible = this.visibility.terrain;
+      this.neighborLayers.water.group.visible = this.visibility.water;
+    }
     this.updateMarkerVisibility();
   }
 
@@ -497,6 +508,49 @@ export class SceneHost {
 
     this.applyVisibility();
     this.prefetchAdjacent();
+    this.rebuildNeighbor(this.windowTracker.current);
+  }
+
+  /** 同法线侧挂一张 L0 邻接 tile；跨腕方向不挂高模 */
+  private rebuildNeighbor(active: { centerS: number; s0: number; s1: number }): void {
+    const wrist = this.route.stopAt('LI5').s;
+    const dir = active.centerS <= wrist ? -1 : 1;
+    const center = active.centerS + dir * WINDOW_HALF * 1.9;
+    const slot = planCorridorWindow(center, this.route.curve.length, WINDOW_HALF, 0.005);
+    if (Math.abs(slot.s0 - active.s0) < 0.002 && Math.abs(slot.s1 - active.s1) < 0.002) {
+      return;
+    }
+    const options = this.windowOptions(slot);
+    const field = new TerrainField(this.route, options);
+    const token = ++this.neighborToken;
+    this.corridorService
+      .build(this.meridian, this.codes, options)
+      .then((data) => {
+        if (this.disposed || token !== this.neighborToken) return;
+        this.mountNeighbor({ field, ...data });
+      })
+      .catch(() => undefined);
+  }
+
+  private mountNeighbor(corridor: CorridorMeshData): void {
+    this.disposeNeighbor();
+    const terrain = createTerrainView(corridor);
+    const water = createWaterView(corridor);
+    terrain.setFogDensity(this.params.fogDensity);
+    water.setFogDensity(this.params.fogDensity);
+    this.neighborCorridor = corridor;
+    this.neighborLayers = { terrain, water };
+    this.scene.add(terrain.group, water.group);
+    this.applyVisibility();
+  }
+
+  private disposeNeighbor(): void {
+    if (!this.neighborLayers) return;
+    this.scene.remove(this.neighborLayers.terrain.group, this.neighborLayers.water.group);
+    this.neighborLayers.terrain.dispose();
+    this.neighborLayers.water.dispose();
+    this.neighborLayers = null;
+    this.neighborCorridor = null;
   }
 
   /** 后台预热 9 个站点窗口，巡游时优先命中缓存 */
@@ -702,6 +756,7 @@ export class SceneHost {
     this.resizeObserver.disconnect();
     this.rig.dispose();
     this.armLine.dispose();
+    this.disposeNeighbor();
     this.disposeLayers();
     this.renderer.dispose();
     this.renderer.domElement.remove();
