@@ -56,6 +56,7 @@ const pressScript = `(() => {
 
 const shots = [
   ['observe', '?mode=observe&labels=1&archetype=auto'],
+  ['anatomy', '?mode=observe&labels=1&archetype=auto&anatomy=1'],
   ['fly', '?mode=fly&archetype=auto'],
   ['dwell', '?mode=dwell&archetype=auto'],
   ['tour', '?mode=observe&labels=1&archetype=auto', "document.querySelector('.tour-start').click()", 3200],

@@ -15,6 +15,7 @@ const DEFAULT_PARAMS: SceneParams = {
   relief: 1,
   fogDensity: 7,
   archetype: 'auto',
+  anatomy: false,
 };
 
 function parseArchetype(value: string | null): ArchetypeChoice {
@@ -84,6 +85,7 @@ export function App() {
     archetype: query.has('archetype')
       ? parseArchetype(query.get('archetype'))
       : storedArchetype(),
+    anatomy: query.get('anatomy') === '1',
   }));
   const [visibility, setVisibility] = useState<SceneVisibility>(() => ({
     ...DEFAULT_VISIBILITY,

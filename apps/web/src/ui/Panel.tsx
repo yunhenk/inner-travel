@@ -196,6 +196,11 @@ export function Panel(props: PanelProps) {
             onChange={(v) => props.onVisibility({ ink: v })}
           />
           <Toggle
+            label="解剖"
+            checked={params.anatomy}
+            onChange={(v) => props.onParams({ anatomy: v })}
+          />
+          <Toggle
             label="身体"
             checked={visibility.body}
             onChange={(v) => props.onVisibility({ body: v })}

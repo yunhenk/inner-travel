@@ -19,6 +19,7 @@ import {
   type ArchetypeParams,
 } from './archetypes.js';
 import { fbm2, ridged2 } from '../noise.js';
+import { anatomyDisplacement, type AnatomyContext } from '../anatomy/landscape.js';
 
 export type TerrainSurface = 'hand' | 'forearm' | 'arm';
 
@@ -38,6 +39,8 @@ export interface TerrainSegment {
 
 export interface TerrainOptions {
   seed: number;
+  /** 解剖启发叠加层：肌腹/肌间隔/血管 */
+  anatomy?: boolean;
   /** 不传时为 M0 合谷走廊 */
   segment?: TerrainSegment;
   /** 'auto' 沿经在三间/合谷/阳溪之间混合；其余为固定原型 */
@@ -56,6 +59,7 @@ export interface TerrainOptions {
 
 export const DEFAULT_TERRAIN: TerrainOptions = {
   seed: 10404,
+  anatomy: false,
   archetype: 'auto',
   valleyDepth: 1,
   riverWidth: 1,
@@ -113,6 +117,7 @@ export class TerrainField {
   private readonly autoS5: number;
   private readonly flowCache = new Map<number, FlowStage>();
   private readonly wristS: number;
+  private readonly anatomyCtx: AnatomyContext;
 
   constructor(route: Route, options: Partial<TerrainOptions> = {}) {
     this.route = route;
@@ -147,6 +152,13 @@ export class TerrainField {
     this.wristS = route.stops.some((stop) => stop.code === 'LI5')
       ? route.stopAt('LI5').s
       : this.segment.s0;
+    this.anatomyCtx = {
+      wristS: this.wristS,
+      heguS: this.poolS,
+      li11S: route.stops.some((stop) => stop.code === 'LI11')
+        ? route.stopAt('LI11').s
+        : route.curve.length,
+    };
     this.domain = {
       s0: this.segment.s0,
       s1: this.segment.s1,
@@ -308,6 +320,10 @@ export class TerrainField {
       smoothstep(p.ridgeOffset * 0.55, p.ridgeOffset * 1.6, Math.abs(t)) *
       0.0016;
     h += (grain + grooves + ridgeDetail + outcrop) * env * o.relief;
+
+    if (this.options.anatomy) {
+      h += anatomyDisplacement(s, t, this.anatomyCtx) * o.relief;
+    }
 
     // 边缘归零，接回皮肤
     const edgeT =

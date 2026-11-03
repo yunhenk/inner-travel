@@ -43,6 +43,7 @@ export interface SceneParams {
   relief: number;
   fogDensity: number;
   archetype: ArchetypeChoice;
+  anatomy: boolean;
 }
 
 export interface SceneVisibility {
@@ -233,6 +234,7 @@ export class SceneHost {
       riverWidth: this.params.riverWidth,
       relief: this.params.relief,
       archetype: this.params.archetype,
+      anatomy: this.params.anatomy,
       tide: 0.55,
       segment: {
         surface: 'arm' as const,
