@@ -3,6 +3,7 @@ import { buildRoute, type Meridian } from '@inner/core';
 import {
   M0_CODES,
   buildCorridor,
+  type ArchetypeChoice,
   type CorridorMeshData,
 } from '@inner/scene-gen';
 import {
@@ -29,6 +30,7 @@ export interface SceneParams {
   riverWidth: number;
   relief: number;
   fogDensity: number;
+  archetype: ArchetypeChoice;
 }
 
 export interface SceneVisibility {
@@ -119,6 +121,7 @@ export class SceneHost {
       valleyDepth: this.params.valleyDepth,
       riverWidth: this.params.riverWidth,
       relief: this.params.relief,
+      archetype: this.params.archetype,
       tide: 0.55,
     });
 
@@ -312,6 +315,7 @@ export class SceneHost {
       valleyDepth: this.params.valleyDepth,
       riverWidth: this.params.riverWidth,
       relief: this.params.relief,
+      archetype: this.params.archetype,
       tide: 0.55,
     });
 

@@ -1,3 +1,4 @@
+export * from './corridor/archetypes.js';
 export * from './corridor/field.js';
 export * from './corridor/build.js';
 export * from './scene.js';

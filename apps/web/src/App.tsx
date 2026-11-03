@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useActor } from '@xstate/react';
 import { findPoint, parseMeridian } from '@inner/core';
 import type { ViewMode } from '@inner/render';
+import { ARCHETYPE_OPTIONS, type ArchetypeChoice } from '@inner/scene-gen';
 import { TOUR_STOPS, tourMachine, type TourStateName } from './journey/tourMachine.js';
 import meridianJson from '../../../content/meridians/hand-yangming-large-intestine.json';
 import { SceneHost } from './scene/SceneHost.js';
@@ -13,7 +14,14 @@ const DEFAULT_PARAMS: SceneParams = {
   riverWidth: 1,
   relief: 1,
   fogDensity: 7,
+  archetype: 'auto',
 };
+
+function parseArchetype(value: string | null): ArchetypeChoice {
+  return ARCHETYPE_OPTIONS.some((option) => option.id === value)
+    ? (value as ArchetypeChoice)
+    : 'auto';
+}
 
 const DEFAULT_VISIBILITY: SceneVisibility = {
   terrain: true,
@@ -59,6 +67,7 @@ export function App() {
     riverWidth: parseNumber(query.get('river'), DEFAULT_PARAMS.riverWidth),
     relief: parseNumber(query.get('relief'), DEFAULT_PARAMS.relief),
     fogDensity: parseNumber(query.get('fog'), DEFAULT_PARAMS.fogDensity),
+    archetype: parseArchetype(query.get('archetype')),
   }));
   const [visibility, setVisibility] = useState<SceneVisibility>(() => ({
     ...DEFAULT_VISIBILITY,

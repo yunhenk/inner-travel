@@ -1,4 +1,5 @@
 import {
+  clamp,
   flowAt,
   hashSeed,
   mulberry32,
@@ -8,10 +9,19 @@ import {
   type Route,
   type Vec3,
 } from '@inner/core';
+import {
+  ARCHETYPES,
+  autoParamsAt,
+  type ArchetypeChoice,
+  type ArchetypeId,
+  type ArchetypeParams,
+} from './archetypes.js';
 import { fbm2, ridged2 } from '../noise.js';
 
 export interface TerrainOptions {
   seed: number;
+  /** 'auto' 沿经在三间/合谷/阳溪之间混合；其余为固定原型 */
+  archetype?: ArchetypeChoice;
   /** 谷深倍率，1 为设计基准 */
   valleyDepth: number;
   /** 河宽倍率 */
@@ -26,6 +36,7 @@ export interface TerrainOptions {
 
 export const DEFAULT_TERRAIN: TerrainOptions = {
   seed: 10404,
+  archetype: 'auto',
   valleyDepth: 1,
   riverWidth: 1,
   relief: 1,
@@ -69,16 +80,21 @@ export class TerrainField {
   readonly route: Route;
   readonly domain: CorridorDomain;
   readonly options: TerrainOptions;
+  readonly archetype: ArchetypeChoice;
   readonly palette: TerrainPalette;
 
   private readonly seedA: number;
   private readonly seedB: number;
   private readonly poolS: number;
+  private readonly autoS3: number;
+  private readonly autoS4: number;
+  private readonly autoS5: number;
   private readonly flowCache = new Map<number, FlowStage>();
 
   constructor(route: Route, options: Partial<TerrainOptions> = {}) {
     this.route = route;
     this.options = { ...DEFAULT_TERRAIN, ...options };
+    this.archetype = this.options.archetype ?? 'auto';
     this.seedA = hashSeed('corridor', this.options.seed);
     this.seedB = hashSeed('pool', this.options.seed);
 
@@ -86,6 +102,9 @@ export class TerrainField {
     const li5 = route.stopAt('LI5');
     const hegu = route.stopAt('LI4');
     this.poolS = hegu.s;
+    this.autoS3 = li3.s;
+    this.autoS4 = hegu.s;
+    this.autoS5 = li5.s;
 
     const s0 = Math.max(0, li3.s - 0.004);
     const s1 = Math.min(route.curve.length, li5.s + 0.006);
@@ -97,7 +116,13 @@ export class TerrainField {
       heguS: hegu.s,
       ridgeOffset: 0.0078,
     };
-    this.palette = buildPalette(route);
+    this.palette = buildPalette(route, this.archetype);
+  }
+
+  /** 当前弧长处的原型参数（固定原型或沿经混合） */
+  paramsAt(s: number): ArchetypeParams {
+    if (this.archetype !== 'auto') return ARCHETYPES[this.archetype];
+    return autoParamsAt(s, this.autoS3, this.autoS4, this.autoS5);
   }
 
   /** 合谷汇水潭中心 */
@@ -121,8 +146,9 @@ export class TerrainField {
   }
 
   displacementAt(s: number, t: number): number {
-    const { s0, s1, heguS, ridgeOffset } = this.domain;
+    const { s0, s1, heguS } = this.domain;
     const o = this.options;
+    const p = this.paramsAt(s);
 
     const ds = s - heguS;
 
@@ -131,43 +157,54 @@ export class TerrainField {
     // 谷口在合谷稍近掌指关节一侧收束
     const mouth = 1 + 0.22 * Math.exp(-(((ds - 0.012) / 0.014) ** 2));
 
-    const amp = 0.003 * o.valleyDepth * o.relief * env;
-    const sigmaC = 0.0034;
+    const amp = 0.003 * o.valleyDepth * o.relief * env * p.valleyAmp;
+    const sigmaC = p.sigmaC;
     // 合谷处两脊略近；沿经轻微蛇行，避免过于规整
     const w =
-      (ridgeOffset - 0.0011 * Math.exp(-((ds / 0.013) ** 2))) *
+      (p.ridgeOffset - 0.0011 * Math.exp(-((ds / 0.013) ** 2))) *
       mouth *
       (1 + 0.07 * Math.sin(s * 120 + 0.6));
 
     let h = -amp * Math.exp(-((t / sigmaC) ** 2));
-    h += amp * 0.64 * Math.exp(-(((t + w) / 0.0019) ** 2));
-    h += amp * 0.64 * Math.exp(-(((t - w) / 0.0019) ** 2));
+    h += amp * p.ridgeGain * Math.exp(-(((t + w) / p.sigmaR) ** 2));
+    h += amp * p.ridgeGain * Math.exp(-(((t - w) / p.sigmaR) ** 2));
 
     // 掌骨与鱼际的次级隆起（外圈山肩）
-    h += 0.0007 * o.relief * Math.exp(-(((t - 0.0165) / 0.0055) ** 2)) * env;
-    h += 0.0005 * o.relief * Math.exp(-(((t + 0.0175) / 0.006) ** 2)) * env;
+    h +=
+      0.0007 * p.secondary * o.relief * Math.exp(-(((t - 0.0165) / 0.0055) ** 2)) * env;
+    h +=
+      0.0005 * p.secondary * o.relief * Math.exp(-(((t + 0.0175) / 0.006) ** 2)) * env;
 
     // 河道下切：五输阶段决定深度与宽度
     const flow = this.flowAtCached(s);
-    const wr = 0.0012 * o.riverWidth * (0.55 + 0.45 * flow.width);
-    const depth = (0.00025 + flow.depth * 0.2) * env * o.relief;
+    const wr = 0.0012 * o.riverWidth * p.riverWidth * (0.55 + 0.45 * flow.width);
+    const depth = (0.00025 + flow.depth * 0.2) * p.riverDepth * env * o.relief;
     h -= depth * Math.exp(-((t / wr) ** 2));
 
     // 合谷汇水潭
-    const pool = Math.exp(-(((ds / 0.0055) ** 2) + ((t / 0.0034) ** 2)));
-    h -= 0.0018 * pool * (0.65 + 0.35 * o.valleyDepth) * o.relief;
+    const pool = Math.exp(-(((ds / p.poolSigmaS) ** 2) + ((t / p.poolSigmaT) ** 2)));
+    h -= 0.0018 * pool * p.poolDepth * (0.65 + 0.35 * o.valleyDepth) * o.relief;
 
     // 皴法细节
     const grain =
-      (fbm2(s * 520 + 3.1, t * 520 - 7.7, 4, this.seedA) - 0.5) * 0.00072 * o.detail;
+      (fbm2(s * 520 + 3.1, t * 520 - 7.7, 4, this.seedA) - 0.5) *
+      0.00072 *
+      o.detail *
+      p.detail;
     const grooves =
-      Math.sin(t * 2600 + fbm2(s * 160, t * 160, 2, this.seedB) * 8) * 0.000025 * o.detail;
+      Math.sin(t * 2600 + fbm2(s * 160, t * 160, 2, this.seedB) * 8) *
+      0.000025 *
+      o.detail *
+      p.detail;
     const ridgeDetail =
-      (ridged2(s * 300, t * 300, 3, this.seedA + 5) - 0.5) * 0.00042 * o.detail;
+      (ridged2(s * 300, t * 300, 3, this.seedA + 5) - 0.5) *
+      0.00042 *
+      o.detail *
+      p.detail;
     // 山坡上的岩脊，只出现在河谷两侧
     const outcrop =
       Math.max(0, ridged2(s * 420, t * 420, 2, this.seedA + 9) - 0.45) *
-      smoothstep(ridgeOffset * 0.55, ridgeOffset * 1.6, Math.abs(t)) *
+      smoothstep(p.ridgeOffset * 0.55, p.ridgeOffset * 1.6, Math.abs(t)) *
       0.0016;
     h += (grain + grooves + ridgeDetail + outcrop) * env * o.relief;
 
@@ -178,25 +215,30 @@ export class TerrainField {
     const edgeS =
       smoothstep(s0, s0 + 0.004, s) * smoothstep(s1, s1 - 0.004, s);
 
-    return h * edgeT * edgeS;
+    return clamp(h * edgeT * edgeS, -0.0062, 0.0062);
   }
 
   /** 不含边缘衰减的局部谷深，用于 UI 显示 */
   valleyDepthAt(s: number): number {
     const ds = Math.abs(s - this.poolS);
-    return 0.0026 * this.options.valleyDepth * (0.22 + 0.78 * smoothstep(0.05, 0.008, ds));
+    return (
+      0.0026 *
+      this.options.valleyDepth *
+      this.paramsAt(s).valleyAmp *
+      (0.22 + 0.78 * smoothstep(0.05, 0.008, ds))
+    );
   }
 
   /** 河道中心水面高度（相对世界 y） */
   riverWaterY(s: number): number {
     const p = this.pointAt(s, 0);
-    return p[1] + 0.00018;
+    return p[1] + this.paramsAt(s).waterLevel;
   }
 
   /** 合谷潭面高度 */
   poolWaterY(): number {
     const p = this.pointAt(this.poolS, 0);
-    return p[1] + 0.00055;
+    return p[1] + this.paramsAt(this.poolS).poolLevel;
   }
 
   /** 局部水面高度：河道为主，合谷处平滑过渡到潭面 */
@@ -285,8 +327,17 @@ export interface TerrainPalette {
   glow: string;
 }
 
-function buildPalette(route: Route): TerrainPalette {
-  return {
+const ARCHETYPE_PALETTES: Record<ArchetypeId, Partial<TerrainPalette>> = {
+  valley: {},
+  stream: { soil: '#9c8b69', moss: '#71804f', rock: '#b8ad93', wet: '#40503f' },
+  gorge: { soil: '#7a6c58', moss: '#4d5c3e', rock: '#8f897a', wet: '#25332e' },
+  pool: { soil: '#897a61', moss: '#56705c', rock: '#a49b85', wet: '#2c3f3c' },
+  well: { soil: '#7f725d', moss: '#4f6045', rock: '#837f70', wet: '#28352f' },
+  pass: { soil: '#8b7f68', moss: '#5a6247', rock: '#99917e', wet: '#333a33' },
+};
+
+function buildPalette(route: Route, archetype: ArchetypeChoice): TerrainPalette {
+  const base: TerrainPalette = {
     soil: '#8a7358',
     moss: '#5b6a42',
     rock: '#938b79',
@@ -296,6 +347,8 @@ function buildPalette(route: Route): TerrainPalette {
     water: route.meridian.palette.water,
     glow: route.meridian.palette.accent,
   };
+  if (archetype === 'auto') return base;
+  return { ...base, ...ARCHETYPE_PALETTES[archetype] };
 }
 
 /** 便于内容/测试复现的随机种子 */

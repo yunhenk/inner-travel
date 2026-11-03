@@ -1,6 +1,7 @@
 import type { ViewMode } from '@inner/render';
 import type { SceneParams, SceneVisibility } from '../scene/SceneHost.js';
 import type { Acupoint } from '@inner/core';
+import { ARCHETYPE_OPTIONS } from '@inner/scene-gen';
 import type { TourStateName } from '../journey/tourMachine.js';
 
 const TAGLINES: Record<string, string> = {
@@ -102,7 +103,24 @@ export function Panel(props: PanelProps) {
       </section>
 
       <section className="panel-section">
-        <h3>地形</h3>
+        <h3>场景原型</h3>
+        <div className="archetypes" role="group" aria-label="场景原型">
+          {ARCHETYPE_OPTIONS.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              className={params.archetype === option.id ? 'archetype active' : 'archetype'}
+              aria-pressed={params.archetype === option.id}
+              onClick={() => props.onParams({ archetype: option.id })}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <details className="panel-section collapsible">
+        <summary>地形</summary>
         <Slider
           label="谷深"
           value={params.valleyDepth}
@@ -139,10 +157,10 @@ export function Panel(props: PanelProps) {
           format={(v) => v.toFixed(0)}
           onChange={(v) => props.onParams({ fogDensity: v })}
         />
-      </section>
+      </details>
 
-      <section className="panel-section">
-        <h3>图层</h3>
+      <details className="panel-section collapsible">
+        <summary>图层</summary>
         <div className="toggles">
           <Toggle
             label="地形"
@@ -180,7 +198,7 @@ export function Panel(props: PanelProps) {
             onChange={(v) => props.onVisibility({ labels: v })}
           />
         </div>
-      </section>
+      </details>
 
       <details className="card" open>
         <summary>
