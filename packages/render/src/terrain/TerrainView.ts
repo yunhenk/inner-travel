@@ -4,6 +4,7 @@ import { createTerrainMaterial } from './terrainMaterial.js';
 
 export interface TerrainView {
   group: THREE.Group;
+  mesh: THREE.Mesh;
   material: THREE.ShaderMaterial;
   dispose(): void;
   setFogDensity(value: number): void;
@@ -36,6 +37,7 @@ export function createTerrainView(corridor: CorridorMeshData): TerrainView {
 
   return {
     group,
+    mesh,
     material,
     dispose() {
       geometry.dispose();

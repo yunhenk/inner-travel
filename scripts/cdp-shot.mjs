@@ -77,6 +77,8 @@ const probe = await send('Runtime.evaluate', {
     target: window.__SCENE__ ? window.__SCENE__.rig.controls.target.toArray().map((v) => +v.toFixed(4)) : null,
     mode: window.__SCENE__ ? window.__SCENE__.rig.mode : null,
     bodyVisible: window.__SCENE__ ? window.__SCENE__.layers.body.group.visible : null,
+    pressActive: window.__SCENE__ ? window.__SCENE__.pressActive : null,
+    pressStrength: window.__SCENE__ ? +window.__SCENE__.pressStrength.toFixed(2) : null,
     vis: window.__SCENE__ ? window.__SCENE__.visibility : null,
     sceneMode: window.__SCENE__ ? window.__SCENE__.mode : null,
     gl: (() => { try { const c = document.querySelector('canvas'); const gl = c?.getContext('webgl2'); return gl ? gl.getParameter(gl.VERSION) : 'no-gl'; } catch (e) { return String(e); } })()

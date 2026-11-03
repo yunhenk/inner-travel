@@ -4,7 +4,13 @@ import { buildQiPath, type TerrainField } from '@inner/scene-gen';
 
 export interface QiView {
   group: THREE.Group;
-  update(time: number, tide: number, opacity: number): void;
+  update(
+    time: number,
+    tide: number,
+    opacity: number,
+    attract?: THREE.Vector3 | null,
+    attractStrength?: number,
+  ): void;
   setPixelScale(value: number): void;
   dispose(): void;
 }
@@ -22,6 +28,8 @@ const vertexShader = /* glsl */ `
   uniform float uPixelScale;
   uniform float uSpeed;
   uniform float uPoolU;
+  uniform vec3 uAttract;
+  uniform float uAttractStrength;
 
   varying float vAlpha;
   varying float vPool;
@@ -40,11 +48,18 @@ const vertexShader = /* glsl */ `
     p += b * swirl;
     p += n * (0.00022 + 0.00055 * (0.5 + 0.5 * sin(u * 23.0 + aSeed * 12.0)));
 
+    vec3 toA = uAttract - p;
+    float dA = length(toA);
+    float pull = uAttractStrength * exp(-pow(dA / 0.012, 2.0));
+    p += normalize(toA + vec3(1e-6)) * pull * 0.0022;
+    p += normalize(cross(toA, n) + vec3(1e-6)) * pull * sin(uTime * 7.0 + aSeed * 12.0) * 0.0012;
+
     vec4 mv = modelViewMatrix * vec4(p, 1.0);
     gl_PointSize = min(18.0, aSize * uSize * uPixelScale / max(0.004, -mv.z));
     gl_Position = projectionMatrix * mv;
 
     vAlpha = edge * (0.55 + 0.45 * sin(u * 60.0 + aSeed * 40.0)) * (0.7 + 0.3 * uTide);
+    vAlpha *= 1.0 + 1.8 * pull;
     vPool = pool;
   }
 `;
@@ -125,6 +140,8 @@ export function createQiView(field: TerrainField): QiView {
       uPixelScale: { value: 800 },
       uSpeed: { value: 0.045 },
       uPoolU: { value: path.poolU },
+      uAttract: { value: new THREE.Vector3() },
+      uAttractStrength: { value: 0 },
       uColor: { value: new THREE.Color(field.palette.glow) },
       uOpacity: { value: 0.6 },
     },
@@ -141,10 +158,18 @@ export function createQiView(field: TerrainField): QiView {
 
   return {
     group,
-    update(time: number, tide: number, opacity: number) {
+    update(
+      time: number,
+      tide: number,
+      opacity: number,
+      attract?: THREE.Vector3 | null,
+      attractStrength = 0,
+    ) {
       material.uniforms.uTime!.value = time;
       material.uniforms.uTide!.value = tide;
       material.uniforms.uOpacity!.value = opacity;
+      if (attract) material.uniforms.uAttract!.value.copy(attract);
+      material.uniforms.uAttractStrength!.value = attractStrength;
     },
     setPixelScale(value: number) {
       material.uniforms.uPixelScale!.value = value;

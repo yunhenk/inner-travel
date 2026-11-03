@@ -428,6 +428,57 @@ input[type="range"]:focus-visible {
   text-underline-offset: 3px;
 }
 
+.press-badge {
+  position: absolute;
+  left: 50%;
+  bottom: 74px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border: 1px solid rgba(168, 118, 63, 0.35);
+  border-radius: 999px;
+  background: rgba(246, 241, 229, 0.78);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: var(--accent);
+  font-family: "Songti SC", "STSong", serif;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  opacity: 0;
+  transform: translate(-50%, 8px);
+  transition:
+    opacity 0.35s ease,
+    transform 0.35s ease;
+  pointer-events: none;
+}
+
+.press-badge.active {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.press-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px rgba(168, 118, 63, 0.9);
+  animation: pressPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes pressPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.55;
+  }
+}
+
 .hint {
   position: absolute;
   left: 32px;

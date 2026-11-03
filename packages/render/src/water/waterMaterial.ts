@@ -27,6 +27,9 @@ const fragmentShader = /* glsl */ `
   uniform float uFogDensity;
   uniform float uTime;
   uniform float uTide;
+  uniform vec3 uRipplePos;
+  uniform float uRippleStrength;
+  uniform float uRippleTime;
 
   varying vec3 vWorld;
   varying vec2 vUv;
@@ -39,6 +42,13 @@ const fragmentShader = /* glsl */ `
       cos(vWorld.z * 3100.0 - uTime * 0.7);
     vec3 n = normalize(vec3(ripple * 0.06, 1.0, ripple * 0.05));
 
+    float rd = length(vWorld.xz - uRipplePos.xz);
+    float rippleWave =
+      sin(rd * 1900.0 - uRippleTime * 5.5) *
+      exp(-rd * 150.0) *
+      uRippleStrength;
+    n = normalize(n + vec3(rippleWave * 0.055, 0.0, rippleWave * 0.04));
+
     float flowLine = 0.5 + 0.5 * sin(vUv.x * 260.0 + uTime * 1.2 + vUv.y * 6.0);
     float fresnel = pow(1.0 - max(dot(viewDir, n), 0.0), 4.0);
     vec3 col = mix(uDeep, uShallow, 0.5 + 0.3 * fresnel + 0.06 * flowLine);
@@ -48,6 +58,7 @@ const fragmentShader = /* glsl */ `
     vec3 halfDir = normalize(L + viewDir);
     float spec = pow(max(dot(n, halfDir), 0.0), 120.0);
     col += uSunColor * spec * 0.32;
+    col += uSky * max(rippleWave, 0.0) * 0.16;
 
 
     float dist = length(cameraPosition - vWorld);
@@ -65,6 +76,7 @@ export interface WaterUniforms {
   material: THREE.ShaderMaterial;
   setFogDensity(value: number): void;
   setTide(value: number): void;
+  setRipple(point: THREE.Vector3 | null, strength: number, time: number): void;
 }
 
 export function createWaterMaterial(options: {
@@ -92,6 +104,9 @@ export function createWaterMaterial(options: {
       uFogDensity: { value: options.fogDensity },
       uTime: { value: 0 },
       uTide: { value: 0.55 },
+      uRipplePos: { value: new THREE.Vector3() },
+      uRippleStrength: { value: 0 },
+      uRippleTime: { value: 0 },
     },
   });
   return {
@@ -101,6 +116,11 @@ export function createWaterMaterial(options: {
     },
     setTide(value: number) {
       material.uniforms.uTide!.value = value;
+    },
+    setRipple(point: THREE.Vector3 | null, strength: number, time: number) {
+      if (point) material.uniforms.uRipplePos!.value.copy(point);
+      material.uniforms.uRippleStrength!.value = strength;
+      material.uniforms.uRippleTime!.value = time;
     },
   };
 }

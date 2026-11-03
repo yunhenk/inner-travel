@@ -42,19 +42,34 @@ async function waitForChrome() {
 
 await waitForChrome();
 
+const pressScript = `(() => {
+  const c = document.querySelector('canvas');
+  const r = c.getBoundingClientRect();
+  const x = r.left + r.width * 0.45;
+  const y = r.top + r.height * 0.65;
+  c.dispatchEvent(new PointerEvent('pointerdown', {
+    bubbles: true, clientX: x, clientY: y,
+    button: 0, pointerId: 1, pointerType: 'mouse'
+  }));
+  return 'press';
+})()`;
+
 const shots = [
   ['observe', '?mode=observe&labels=1'],
   ['fly', '?mode=fly'],
   ['dwell', '?mode=dwell'],
+  ['press', '?mode=observe&labels=1', pressScript],
   ['body-context', '?mode=observe&body=1&labels=1'],
   ['clean-fly', '?mode=fly&ui=0'],
 ];
 
 try {
-  for (const [name, query] of shots) {
+  for (const [name, query, evalScript] of shots) {
     const url = `${base}${query}`;
+    const env = { ...process.env, CDP_PORT: String(port) };
+    if (evalScript) env.EVAL = evalScript;
     await run('node', ['scripts/cdp-shot.mjs', url, `docs/screenshots/${name}.png`, '7000'], {
-      env: { ...process.env, CDP_PORT: String(port) },
+      env,
       stdio: 'inherit',
     });
   }

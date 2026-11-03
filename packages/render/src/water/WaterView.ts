@@ -6,6 +6,7 @@ export interface WaterView {
   group: THREE.Group;
   update(time: number): void;
   setFogDensity(value: number): void;
+  setRipple(point: THREE.Vector3 | null, strength: number, time: number): void;
   dispose(): void;
 }
 
@@ -34,6 +35,9 @@ export function createWaterView(corridor: CorridorMeshData): WaterView {
     },
     setFogDensity(value: number) {
       uniforms.setFogDensity(value);
+    },
+    setRipple(point: THREE.Vector3 | null, strength: number, time: number) {
+      uniforms.setRipple(point, strength, time);
     },
     dispose() {
       for (const child of group.children) {

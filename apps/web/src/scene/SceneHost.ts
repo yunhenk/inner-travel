@@ -10,12 +10,14 @@ import {
   createBodyView,
   createMarkerView,
   createMistView,
+  createPressView,
   createQiView,
   createTerrainView,
   createWaterView,
   type BodyView,
   type MarkerView,
   type MistView,
+  type PressView,
   type QiView,
   type TerrainView,
   type ViewMode,
@@ -47,6 +49,7 @@ export interface SceneHostOptions {
   onStats?: (fps: number) => void;
   onReady?: () => void;
   onStopChange?: (code: string) => void;
+  onPressChange?: (active: boolean) => void;
 }
 
 interface Layers {
@@ -54,6 +57,7 @@ interface Layers {
   water: WaterView;
   body: BodyView;
   qi: QiView;
+  press: PressView;
   markers: MarkerView;
   mist: MistView;
 }
@@ -68,7 +72,17 @@ export class SceneHost {
   private readonly onStats?: (fps: number) => void;
   private readonly onReady?: () => void;
   private readonly onStopChange?: (code: string) => void;
+  private readonly onPressChange?: (active: boolean) => void;
   private activeCode = 'LI4';
+
+  private readonly raycaster = new THREE.Raycaster();
+  private readonly pointerNdc = new THREE.Vector2();
+  private readonly pressPoint = new THREE.Vector3();
+  private readonly pressNormal = new THREE.Vector3(0, 1, 0);
+  private pressActive = false;
+  private pressStrength = 0;
+  private pointerStart: { x: number; y: number } | null = null;
+  private pressTimer: number | null = null;
   private lastTime = 0;
   private readonly resizeObserver: ResizeObserver;
 
@@ -95,6 +109,7 @@ export class SceneHost {
     this.onStats = options.onStats;
     this.onReady = options.onReady;
     this.onStopChange = options.onStopChange;
+    this.onPressChange = options.onPressChange;
 
     const route = buildRoute(this.meridian, M0_CODES);
     this.corridor = buildCorridor(route, {
@@ -147,6 +162,11 @@ export class SceneHost {
     this.layers = this.createLayers();
     this.applyVisibility();
 
+    this.renderer.domElement.addEventListener('pointerdown', this.onPointerDown);
+    this.renderer.domElement.addEventListener('pointermove', this.onPointerMove);
+    window.addEventListener('pointerup', this.onPointerUp);
+    window.addEventListener('pointercancel', this.onPointerUp);
+
     this.renderer.setSize(width, height, false);
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(container);
@@ -177,6 +197,7 @@ export class SceneHost {
     const mist = createMistView(this.corridor.field);
     const markers = createMarkerView(this.corridor.field.route, this.corridor.field);
     const qi = createQiView(this.corridor.field);
+    const press = createPressView(this.corridor.field.palette.glow);
     const body = createBodyView({
       zc0: zCenterAt(this.corridor, -0.006),
       zc1: zCenterAt(this.corridor, 0.098),
@@ -188,8 +209,16 @@ export class SceneHost {
     water.setFogDensity(this.params.fogDensity);
     qi.setPixelScale(this.qiPixelScale());
 
-    this.scene.add(body.group, terrain.group, water.group, mist.group, markers.group, qi.group);
-    return { terrain, water, body, markers, mist, qi };
+    this.scene.add(
+      body.group,
+      terrain.group,
+      water.group,
+      mist.group,
+      markers.group,
+      qi.group,
+      press.group,
+    );
+    return { terrain, water, body, markers, mist, qi, press };
   }
 
   private disposeLayers(): void {
@@ -200,12 +229,14 @@ export class SceneHost {
       this.layers.mist.group,
       this.layers.markers.group,
       this.layers.qi.group,
+      this.layers.press.group,
     );
     this.layers.terrain.dispose();
     this.layers.water.dispose();
     this.layers.mist.dispose();
     this.layers.markers.dispose();
     this.layers.qi.dispose();
+    this.layers.press.dispose();
     this.layers.body.dispose();
   }
 
@@ -328,8 +359,20 @@ export class SceneHost {
     this.layers.mist.group.visible = this.visibility.mist && !near;
     this.layers.water.update(time);
     this.layers.mist.update(time);
-    const qiOpacity = this.mode === 'fly' ? 0.78 : this.mode === 'dwell' ? 0.72 : 0.42;
-    this.layers.qi.update(time, 0.62, this.visibility.qi ? qiOpacity : 0);
+    const qiOpacity = this.mode === 'fly' ? 0.8 : this.mode === 'dwell' ? 0.62 : 0.42;
+    const pressTarget = this.pressActive ? 1 : 0;
+    this.pressStrength += (pressTarget - this.pressStrength) * (1 - Math.exp(-dt * 7));
+    if (!this.pressActive && this.pressStrength < 0.01) this.pressStrength = 0;
+    const attract = this.pressStrength > 0.01 ? this.pressPoint : null;
+    this.layers.qi.update(
+      time,
+      0.62,
+      this.visibility.qi ? qiOpacity : 0,
+      attract,
+      this.pressStrength,
+    );
+    this.layers.water.setRipple(attract, this.pressStrength, time);
+    this.layers.press.update(attract, this.pressNormal, this.pressStrength, time);
     this.layers.terrain.material.uniforms.uTime!.value = time;
     this.renderer.render(this.scene, this.camera);
 
@@ -348,6 +391,66 @@ export class SceneHost {
     }
   };
 
+  private onPointerDown = (event: PointerEvent): void => {
+    if (event.button !== 0) return;
+    if (this.pressActive) this.endPress();
+    this.pointerStart = { x: event.clientX, y: event.clientY };
+    this.clearPressTimer();
+    this.pressTimer = window.setTimeout(() => {
+      this.pressTimer = null;
+      if (this.pointerStart) this.beginPress(this.pointerStart.x, this.pointerStart.y);
+    }, 180);
+  };
+
+  private onPointerMove = (event: PointerEvent): void => {
+    if (!this.pointerStart) return;
+    const dx = event.clientX - this.pointerStart.x;
+    const dy = event.clientY - this.pointerStart.y;
+    if (dx * dx + dy * dy > 25) {
+      this.clearPressTimer();
+      this.pointerStart = null;
+      if (this.pressActive) this.endPress();
+    }
+  };
+
+  private onPointerUp = (): void => {
+    this.clearPressTimer();
+    this.pointerStart = null;
+    if (this.pressActive) this.endPress();
+  };
+
+  private clearPressTimer(): void {
+    if (this.pressTimer !== null) {
+      window.clearTimeout(this.pressTimer);
+      this.pressTimer = null;
+    }
+  }
+
+  private beginPress(clientX: number, clientY: number): void {
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    this.pointerNdc.set(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -((clientY - rect.top) / rect.height) * 2 + 1,
+    );
+    this.raycaster.setFromCamera(this.pointerNdc, this.camera);
+    const hits = this.raycaster.intersectObject(this.layers.terrain.mesh, false);
+    const hit = hits[0];
+    if (!hit) return;
+    this.pressPoint.copy(hit.point);
+    if (hit.face) {
+      this.pressNormal.copy(hit.face.normal).normalize();
+    } else {
+      this.pressNormal.set(0, 1, 0);
+    }
+    this.pressActive = true;
+    this.onPressChange?.(true);
+  }
+
+  private endPress(): void {
+    this.pressActive = false;
+    this.onPressChange?.(false);
+  }
+
   private qiPixelScale(): number {
     const fov = (this.camera.fov * Math.PI) / 180;
     return this.renderer.domElement.height / (2 * Math.tan(fov / 2));
@@ -362,6 +465,11 @@ export class SceneHost {
 
   dispose(): void {
     this.disposed = true;
+    this.clearPressTimer();
+    this.renderer.domElement.removeEventListener('pointerdown', this.onPointerDown);
+    this.renderer.domElement.removeEventListener('pointermove', this.onPointerMove);
+    window.removeEventListener('pointerup', this.onPointerUp);
+    window.removeEventListener('pointercancel', this.onPointerUp);
     cancelAnimationFrame(this.raf);
     this.resizeObserver.disconnect();
     this.rig.dispose();

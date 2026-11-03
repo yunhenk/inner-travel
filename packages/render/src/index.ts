@@ -7,3 +7,4 @@ export * from './markers/MeridianMarkers.js';
 export * from './mist/MistView.js';
 export * from './camera/CameraRig.js';
 export * from './qi/QiView.js';
+export * from './press/PressView.js';

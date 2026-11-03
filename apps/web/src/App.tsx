@@ -60,6 +60,7 @@ export function App() {
   const [fps, setFps] = useState(0);
   const [triangles, setTriangles] = useState(0);
   const [ready, setReady] = useState(false);
+  const [pressing, setPressing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -75,6 +76,7 @@ export function App() {
         onStats: setFps,
         onReady: () => setReady(true),
         onStopChange: setActiveCode,
+        onPressChange: setPressing,
       });
       hostRef.current = host;
       setTriangles(host.getTriangleCount());
@@ -155,8 +157,13 @@ export function App() {
             onReset={handleReset}
           />
 
+          <div className={pressing ? 'press-badge active' : 'press-badge'} aria-hidden={!pressing}>
+            <span className="press-dot" />
+            候气 · 气聚于谷
+          </div>
+
           <footer className="hint" aria-hidden="true">
-            <span>拖动环视 · 滚轮远近</span>
+            <span>拖动环视 · 滚轮远近 · 按住地面候气</span>
             <span className="sep">/</span>
             <span>1 观 · 2 游 · 3 驻 · R 复位</span>
           </footer>
