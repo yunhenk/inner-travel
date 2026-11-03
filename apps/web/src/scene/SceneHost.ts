@@ -3,10 +3,7 @@ import { buildRoute, type Meridian, type Route } from '@inner/core';
 import {
   M0_CODES,
   TerrainField,
-  TileManager,
-  WindowTracker,
   buildCorridor,
-  planCorridorWindow,
   type ArchetypeChoice,
   type CorridorMeshData,
 } from '@inner/scene-gen';
@@ -39,7 +36,6 @@ export const TOUR_CODES = [
 ] as const;
 
 const CODES = TOUR_CODES;
-const WINDOW_HALF = 0.05;
 
 export interface SceneParams {
   valleyDepth: number;
@@ -113,19 +109,10 @@ export class SceneHost {
   private readonly route: Route;
   private readonly field: TerrainField;
   private readonly fullField: TerrainField;
-  private readonly windowTracker: WindowTracker;
-  private readonly tileManager: TileManager;
   private readonly armLine: ArmLineView;
   private readonly codes: readonly string[];
   private corridor: CorridorMeshData | null = null;
   private layers: Layers | null = null;
-  private neighborCorridor: CorridorMeshData | null = null;
-  private neighborLayers: { terrain: TerrainView; water: WaterView } | null = null;
-  private neighborToken = 0;
-  private transitionCorridor: CorridorMeshData | null = null;
-  private transitionTerrain: TerrainView | null = null;
-  private transitionWater: WaterView | null = null;
-  private transitionToken = 0;
   private params: SceneParams;
   private visibility: SceneVisibility;
   private mode: ViewMode;
@@ -138,7 +125,8 @@ export class SceneHost {
   private rebuildToken = 0;
   private frames = 0;
   private lastStats = 0;
-  private prefetched = false;
+  private adaptiveFocus = 0;
+  private activeSide: 'hand' | 'forearm' = 'hand';
 
   constructor(container: HTMLElement, options: SceneHostOptions) {
     this.container = container;
@@ -156,14 +144,7 @@ export class SceneHost {
     this.route = buildRoute(this.meridian, this.codes);
     this.fullField = new TerrainField(this.route, this.fullOptions());
     this.field = this.fullField;
-    this.windowTracker = new WindowTracker(
-      this.route.stopAt('LI4').s,
-      this.route.curve.length,
-      WINDOW_HALF,
-      0.005,
-      0.012,
-    );
-    this.tileManager = new TileManager(this.route.curve.length, WINDOW_HALF, 0.005, 12);
+    this.adaptiveFocus = this.route.stopAt('LI4').s;
     this.activeCode = 'LI4';
 
     this.renderer = new THREE.WebGLRenderer({
@@ -229,8 +210,20 @@ export class SceneHost {
     );
   }
 
-  private windowOptions(window: { s0: number; s1: number; centerS?: number }) {
-    return this.segmentOptions(window.s0, window.s1, window.centerS);
+  private sideOptions(focusS: number) {
+    const wrist = this.route.stopAt('LI5').s;
+    if (focusS <= wrist) {
+      return this.segmentOptions(
+        Math.max(0, this.route.stopAt('LI3').s - 0.004),
+        Math.min(this.route.curve.length, wrist + 0.006),
+        focusS,
+      );
+    }
+    return this.segmentOptions(
+      Math.max(0, wrist - 0.004),
+      Math.min(this.route.curve.length, this.route.stopAt('LI11').s + 0.006),
+      focusS,
+    );
   }
 
   private segmentOptions(s0: number, s1: number, focusS?: number) {
@@ -259,14 +252,13 @@ export class SceneHost {
   }
 
   private async loadInitial(): Promise<void> {
-    const window = this.windowTracker.current;
-    const options = this.windowOptions(window);
+    this.adaptiveFocus = this.route.stopAt('LI4').s;
+    const options = this.sideOptions(this.adaptiveFocus);
     const field = new TerrainField(this.route, options);
     try {
       const data = await this.corridorService.build(this.meridian, this.codes, options);
       if (this.disposed) return;
       this.swapCorridor({ field, ...data });
-      this.prefetchAllStops();
     } catch (error) {
       console.error('首屏走廊异步生成失败，回退主线程', error);
       if (this.disposed) return;
@@ -428,12 +420,6 @@ export class SceneHost {
       this.layers.anchors.group.visible = true;
       this.layers.anchors.setActive(this.activeCode);
       this.armLine.group.visible = false;
-      if (this.neighborLayers) {
-        this.neighborLayers.terrain.group.visible = false;
-        this.neighborLayers.water.group.visible = false;
-      }
-      if (this.transitionTerrain) this.transitionTerrain.group.visible = false;
-      if (this.transitionWater) this.transitionWater.group.visible = false;
       return;
     }
     this.layers.body.setEmphasis(false);
@@ -445,26 +431,16 @@ export class SceneHost {
     this.layers.body.group.visible = this.visibility.body && this.mode === 'observe';
     this.layers.qi.group.visible = this.visibility.qi;
     this.layers.mist.group.visible = this.visibility.mist;
-    if (this.neighborLayers) {
-      this.neighborLayers.terrain.group.visible = this.visibility.terrain;
-      this.neighborLayers.water.group.visible = this.visibility.water;
-    }
-    if (this.transitionTerrain) {
-      this.transitionTerrain.group.visible = this.visibility.terrain;
-    }
-    if (this.transitionWater) {
-      this.transitionWater.group.visible = this.visibility.water;
-    }
     this.updateMarkerVisibility();
   }
 
   private rebuildTerrain(): void {
     this.pendingRebuild = false;
-    this.rebuildWindow(this.windowTracker.current);
+    this.rebuildSide(this.adaptiveFocus);
   }
 
-  private rebuildWindow(window: { s0: number; s1: number }): void {
-    const options = this.windowOptions(window);
+  private rebuildSide(focusS: number): void {
+    const options = this.sideOptions(focusS);
     const field = new TerrainField(this.route, options);
     const token = ++this.rebuildToken;
     this.corridorService
@@ -520,135 +496,6 @@ export class SceneHost {
     }
 
     this.applyVisibility();
-    this.prefetchAdjacent();
-    this.rebuildNeighbor(this.windowTracker.current);
-    this.rebuildTransition(this.windowTracker.current);
-  }
-
-  /** 跨腕方向的 L1/L2 低模过渡带：只挂地形，不挂水/气 */
-  private rebuildTransition(active: { centerS: number; s0: number; s1: number }): void {
-    const wrist = this.route.stopAt('LI5').s;
-    const dir = active.centerS <= wrist ? 1 : -1;
-    const center = active.centerS + dir * WINDOW_HALF * 2.2;
-    const slot = planCorridorWindow(center, this.route.curve.length, WINDOW_HALF, 0.005);
-    if (Math.abs(slot.s0 - active.s0) < 0.002 && Math.abs(slot.s1 - active.s1) < 0.002) {
-      return;
-    }
-    const options = {
-      ...this.windowOptions(slot),
-      relief: this.params.relief * 0.16,
-      valleyDepth: this.params.valleyDepth * 0.45,
-      ds: 0.0015,
-      dtCoarse: 0.0012,
-      dtFine: 0.0003,
-    };
-    const field = new TerrainField(this.route, options);
-    const token = ++this.transitionToken;
-    this.corridorService
-      .build(this.meridian, this.codes, options)
-      .then((data) => {
-        if (this.disposed || token !== this.transitionToken) return;
-        this.mountTransition({ field, ...data });
-      })
-      .catch(() => undefined);
-  }
-
-  private mountTransition(corridor: CorridorMeshData): void {
-    this.disposeTransition();
-    const terrain = createTerrainView(corridor);
-    const water = createWaterView(corridor);
-    terrain.setFogDensity(this.params.fogDensity);
-    water.setFogDensity(this.params.fogDensity);
-    this.transitionCorridor = corridor;
-    this.transitionTerrain = terrain;
-    this.transitionWater = water;
-    this.scene.add(terrain.group, water.group);
-    this.applyVisibility();
-  }
-
-  private disposeTransition(): void {
-    if (this.transitionTerrain) {
-      this.scene.remove(this.transitionTerrain.group);
-      this.transitionTerrain.dispose();
-    }
-    if (this.transitionWater) {
-      this.scene.remove(this.transitionWater.group);
-      this.transitionWater.dispose();
-    }
-    this.transitionTerrain = null;
-    this.transitionWater = null;
-    this.transitionCorridor = null;
-  }
-
-  /** 同法线侧挂一张 L0 邻接 tile；跨腕方向不挂高模 */
-  private rebuildNeighbor(active: { centerS: number; s0: number; s1: number }): void {
-    const wrist = this.route.stopAt('LI5').s;
-    const dir = active.centerS <= wrist ? -1 : 1;
-    const center = active.centerS + dir * WINDOW_HALF * 1.9;
-    const slot = planCorridorWindow(center, this.route.curve.length, WINDOW_HALF, 0.005);
-    if (Math.abs(slot.s0 - active.s0) < 0.002 && Math.abs(slot.s1 - active.s1) < 0.002) {
-      return;
-    }
-    const options = this.windowOptions(slot);
-    const field = new TerrainField(this.route, options);
-    const token = ++this.neighborToken;
-    this.corridorService
-      .build(this.meridian, this.codes, options)
-      .then((data) => {
-        if (this.disposed || token !== this.neighborToken) return;
-        this.mountNeighbor({ field, ...data });
-      })
-      .catch(() => undefined);
-  }
-
-  private mountNeighbor(corridor: CorridorMeshData): void {
-    this.disposeNeighbor();
-    const terrain = createTerrainView(corridor);
-    const water = createWaterView(corridor);
-    terrain.setFogDensity(this.params.fogDensity);
-    water.setFogDensity(this.params.fogDensity);
-    this.neighborCorridor = corridor;
-    this.neighborLayers = { terrain, water };
-    this.scene.add(terrain.group, water.group);
-    this.applyVisibility();
-  }
-
-  private disposeNeighbor(): void {
-    if (!this.neighborLayers) return;
-    this.scene.remove(this.neighborLayers.terrain.group, this.neighborLayers.water.group);
-    this.neighborLayers.terrain.dispose();
-    this.neighborLayers.water.dispose();
-    this.neighborLayers = null;
-    this.neighborCorridor = null;
-  }
-
-  /** 后台预热 9 个站点窗口，巡游时优先命中缓存 */
-  private prefetchAllStops(): void {
-    if (this.prefetched || this.disposed) return;
-    this.prefetched = true;
-    const stops = [...this.route.stops];
-    let index = 0;
-    const step = () => {
-      if (this.disposed || index >= stops.length) return;
-      const stop = stops[index++]!;
-      const plan = this.tileManager.focus(stop.s);
-      for (const tile of plan.added) {
-        const options = this.windowOptions(tile);
-        void this.corridorService.build(this.meridian, this.codes, options).catch(() => undefined);
-      }
-      window.setTimeout(step, 180);
-    };
-    window.setTimeout(step, 700);
-  }
-
-  /** 预生成左右相邻窗口，滑动时尽量命中缓存 */
-  private prefetchAdjacent(): void {
-    const center = this.windowTracker.current.centerS;
-    const plan = this.tileManager.focus(center);
-    for (const tile of plan.added) {
-      const options = this.windowOptions(tile);
-      void this.corridorService.build(this.meridian, this.codes, options).catch(() => undefined);
-    }
   }
 
   private resize(): void {
@@ -682,8 +529,13 @@ export class SceneHost {
     const focusS = this.rig.getFocusS();
     this.armLine.setFocus(focusS);
     this.layers?.markers.setFocus(focusS);
-    const nextWindow = this.windowTracker.update(focusS, this.route.curve.length);
-    if (nextWindow) this.rebuildWindow(nextWindow);
+    const wrist = this.route.stopAt('LI5').s;
+    const side = focusS <= wrist ? 'hand' : 'forearm';
+    if (side !== this.activeSide || Math.abs(focusS - this.adaptiveFocus) > 0.012) {
+      this.activeSide = side;
+      this.adaptiveFocus = focusS;
+      this.rebuildSide(focusS);
+    }
 
     const layers = this.layers;
     if (layers && this.corridor) {
@@ -825,8 +677,6 @@ export class SceneHost {
     this.resizeObserver.disconnect();
     this.rig.dispose();
     this.armLine.dispose();
-    this.disposeNeighbor();
-    this.disposeTransition();
     this.disposeLayers();
     this.renderer.dispose();
     this.renderer.domElement.remove();
