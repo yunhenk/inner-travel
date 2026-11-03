@@ -239,7 +239,8 @@ export class TerrainField {
     const p = this.paramsAt(s);
     const ds = s - this.poolS;
     const poolMix = Math.exp(-((ds / 0.0075) ** 2));
-    return p.waterLevel + (p.poolLevel - p.waterLevel) * poolMix;
+    const level = p.waterLevel + (p.poolLevel - p.waterLevel) * poolMix;
+    return level * (this.surface === 'arm' ? 0.55 : 1);
   }
 
   displacementAt(s: number, t: number): number {

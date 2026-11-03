@@ -149,6 +149,11 @@ const fragmentShader = /* glsl */ `
     fog = clamp(fog + valleyMist * (1.0 - fog), 0.0, 0.94);
     lit = mix(lit, uFog, fog);
 
+    // 窗口边缘 dissolve，避免 tile 切边成为硬直线
+    float edgeFade =
+      smoothstep(0.0, 0.07, vUv.x) * smoothstep(1.0, 0.93, vUv.x);
+    if (edgeFade < 0.999 && hash21(gl_FragCoord.xy) > edgeFade) discard;
+
     gl_FragColor = vec4(lit, 1.0);
     #include <colorspace_fragment>
   }

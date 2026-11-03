@@ -37,7 +37,7 @@ export const TOUR_CODES = [
 ] as const;
 
 const CODES = TOUR_CODES;
-const WINDOW_HALF = 0.035;
+const WINDOW_HALF = 0.05;
 
 export interface SceneParams {
   valleyDepth: number;
