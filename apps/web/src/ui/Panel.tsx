@@ -200,6 +200,9 @@ export function Panel(props: PanelProps) {
             checked={params.anatomy}
             onChange={(v) => props.onParams({ anatomy: v })}
           />
+          {params.anatomy && (
+            <p className="anatomy-legend">赭 · 肌腹　牙白 · 筋膜　青 · 桡动脉</p>
+          )}
           <Toggle
             label="身体"
             checked={visibility.body}

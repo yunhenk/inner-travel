@@ -264,6 +264,10 @@ export function App() {
             onReset={handleReset}
           />
 
+          {params.anatomy && (
+            <div className="anatomy-badge">解剖 · 赭肌 / 牙白筋膜 / 青桡动脉</div>
+          )}
+
           <div className={pressing ? 'press-badge active' : 'press-badge'} aria-hidden={!pressing}>
             <span className="press-dot" />
             候气 · 气聚于谷

@@ -283,6 +283,7 @@ export class SceneHost {
 
   private createLayers(corridor: CorridorMeshData): Layers {
     const terrain = createTerrainView(corridor);
+    terrain.setAnatomy(this.params.anatomy);
     const water = createWaterView(corridor);
     const mist = createMistView(corridor.field);
     const markers = createMarkerView(corridor.field.route, corridor.field);
@@ -478,6 +479,7 @@ export class SceneHost {
 
       this.corridor = corridor;
       const terrain = createTerrainView(corridor);
+      terrain.setAnatomy(this.params.anatomy);
       const water = createWaterView(corridor);
       const mist = createMistView(corridor.field);
       const markers = createMarkerView(corridor.field.route, corridor.field);

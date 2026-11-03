@@ -9,6 +9,7 @@ export interface TerrainView {
   dispose(): void;
   setFogDensity(value: number): void;
   setInk(enabled: boolean): void;
+  setAnatomy(enabled: boolean): void;
 }
 
 /** 把 scene-gen 的纯数据装配成 three 网格 */
@@ -20,6 +21,9 @@ export function createTerrainView(corridor: CorridorMeshData): TerrainView {
   geometry.setAttribute('aWet', new THREE.BufferAttribute(corridor.wet, 1));
   geometry.setAttribute('aConcavity', new THREE.BufferAttribute(corridor.concavity, 1));
   geometry.setAttribute('aEdge', new THREE.BufferAttribute(corridor.edge, 1));
+  if (corridor.terrain.anatomy) {
+    geometry.setAttribute('aAnatomy', new THREE.BufferAttribute(corridor.terrain.anatomy, 1));
+  }
   if (corridor.terrain.alpha) {
     geometry.setAttribute('aAlpha', new THREE.BufferAttribute(corridor.terrain.alpha, 1));
   } else {
@@ -56,6 +60,9 @@ export function createTerrainView(corridor: CorridorMeshData): TerrainView {
     setInk(enabled: boolean) {
       material.uniforms.uInkStrength!.value = enabled ? 0.7 : 0;
       material.uniforms.uInkBoost!.value = enabled ? 1 : 0;
+    },
+    setAnatomy(enabled: boolean) {
+      material.uniforms.uAnatomy!.value = enabled ? 1 : 0;
     },
   };
 }

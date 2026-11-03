@@ -366,6 +366,30 @@ body {
   margin-top: 10px;
 }
 
+.anatomy-badge {
+  position: absolute;
+  left: 32px;
+  bottom: 72px;
+  z-index: 6;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(245, 240, 228, 0.62);
+  backdrop-filter: blur(6px);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+  pointer-events: none;
+}
+
+.anatomy-legend {
+  grid-column: 1 / -1;
+  margin: 6px 0 0;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+}
+
 .archetypes {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

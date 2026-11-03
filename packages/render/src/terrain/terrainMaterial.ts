@@ -11,6 +11,7 @@ const vertexShader = /* glsl */ `
   attribute float aConcavity;
   attribute float aEdge;
   attribute float aAlpha;
+  attribute float aAnatomy;
   varying vec3 vWorld;
   varying vec3 vNormalW;
   varying vec2 vUv;
@@ -18,6 +19,7 @@ const vertexShader = /* glsl */ `
   varying float vConcavity;
   varying float vEdge;
   varying float vAlpha;
+  varying float vAnatomy;
 
   void main() {
     vec4 world = modelMatrix * vec4(position, 1.0);
@@ -28,6 +30,7 @@ const vertexShader = /* glsl */ `
     vConcavity = aConcavity;
     vEdge = aEdge;
     vAlpha = aAlpha;
+    vAnatomy = aAnatomy;
     gl_Position = projectionMatrix * viewMatrix * world;
   }
 `;
@@ -46,6 +49,9 @@ const fragmentShader = /* glsl */ `
   uniform float uFogDensity;
   uniform float uInkStrength;
   uniform float uInkBoost;
+  uniform float uAnatomy;
+  uniform vec3 uMuscle;
+  uniform vec3 uFascia;
   uniform float uTime;
   uniform float uWaterY;
   uniform vec3 uSkin;
@@ -57,6 +63,7 @@ const fragmentShader = /* glsl */ `
   varying float vConcavity;
   varying float vEdge;
   varying float vAlpha;
+  varying float vAnatomy;
 
   float hash21(vec2 p) {
     p = fract(p * vec2(123.34, 456.21));
@@ -121,6 +128,12 @@ const fragmentShader = /* glsl */ `
 
     // 积墨 + 山脊/陡坡的淡墨线
     float rim = pow(1.0 - clamp(dot(n, viewDir), 0.0, 1.0), 3.0);
+    // 解剖层：肌腹赭红、筋膜牙白；关闭时 uAnatomy=0
+    float muscleMask = smoothstep(0.00005, 0.00055, vAnatomy);
+    float fasciaMask = smoothstep(0.00005, 0.0004, -vAnatomy);
+    col = mix(col, uMuscle, muscleMask * uAnatomy * 0.5);
+    col = mix(col, uFascia, fasciaMask * uAnatomy * 0.35);
+
     float hatch =
       smoothstep(0.58, 0.92, slope) *
       smoothstep(0.42, 0.78, fbm(vWorld.xz * 520.0 + vWorld.y * 700.0));
@@ -175,6 +188,9 @@ export function createTerrainMaterial(options: TerrainMaterialOptions): THREE.Sh
       uFogDensity: { value: fogDensity },
       uInkStrength: { value: 0.7 },
       uInkBoost: { value: 1 },
+      uAnatomy: { value: 0 },
+      uMuscle: { value: new THREE.Color('#8f4c3e') },
+      uFascia: { value: new THREE.Color('#e9dfca') },
       uWaterY: { value: 0 },
       uSkin: { value: new THREE.Color('#d9b49c') },
       uTime: { value: 0 },

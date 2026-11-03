@@ -29,6 +29,8 @@ function collectBuffers(data: CorridorData): Transferable[] {
     data.terrain.normals.buffer,
     data.terrain.uvs.buffer,
     data.terrain.indices.buffer,
+    ...(data.terrain.alpha ? [data.terrain.alpha.buffer] : []),
+    ...(data.terrain.anatomy ? [data.terrain.anatomy.buffer] : []),
     data.wet.buffer,
     data.edge.buffer,
     data.concavity.buffer,

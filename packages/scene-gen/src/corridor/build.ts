@@ -21,6 +21,8 @@ export interface MeshData {
   indices: Uint32Array;
   /** 可选：用于窗口边缘淡出 */
   alpha?: Float32Array;
+  /** 可选：解剖叠加层的带符号位移 */
+  anatomy?: Float32Array;
 }
 
 export interface WaterData {
@@ -94,6 +96,7 @@ export function buildCorridorData(
   const wet = new Float32Array(count);
   const edge = new Float32Array(count);
   const alpha = new Float32Array(count);
+  const anatomy = new Float32Array(count);
   const heights = new Float32Array(count);
 
   let minX = Infinity;
@@ -124,6 +127,7 @@ export function buildCorridorData(
       alpha[i] =
         smooth01(Math.min(s - s0, s1 - s) / 0.008) *
         smooth01(Math.min(t - tMin, tMax - t) / 0.0015);
+      anatomy[i] = field.anatomyAt(s, t);
 
       minX = Math.min(minX, p[0]);
       minY = Math.min(minY, p[1]);
@@ -138,7 +142,7 @@ export function buildCorridorData(
   const concavity = computeConcavity(heights, rows, cols);
   const indices = buildIndices(rows, cols);
 
-  const terrain: MeshData = { positions, normals, uvs, indices, alpha };
+  const terrain: MeshData = { positions, normals, uvs, indices, alpha, anatomy };
   const river = buildRiver(field, sValues[0]!, sValues[sValues.length - 1]!);
   const pool =
     field.domain.s0 <= field.heguS && field.heguS <= field.domain.s1

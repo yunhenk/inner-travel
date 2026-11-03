@@ -197,6 +197,11 @@ export class TerrainField {
     ];
   }
 
+  /** 解剖叠加层的带符号位移，供顶点着色与调色 */
+  anatomyAt(s: number, t: number): number {
+    return anatomyDisplacement(s, t, this.anatomyCtx);
+  }
+
   normalAt(s: number, t: number): Vec3 {
     return this.surfaceFrameAt(s, t).normal;
   }
