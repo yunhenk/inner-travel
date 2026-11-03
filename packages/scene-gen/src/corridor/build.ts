@@ -1,4 +1,4 @@
-import { type Route, type Vec3 } from '@inner/core';
+import { smoothstep, type Route, type Vec3 } from '@inner/core';
 import { TerrainField, type TerrainOptions } from './field.js';
 
 export interface CorridorBuildOptions extends Partial<TerrainOptions> {
@@ -243,8 +243,12 @@ function buildRiver(field: TerrainField, s0: number, s1: number): MeshData {
     const level = field.waterYAt(s);
     const dy = 0.00004 * Math.sin(s * 900);
     const span = field.wettedSpan(s);
-    const left = span.left + 0.00004;
-    const right = span.right - 0.00004;
+    // 走廊端头地形会摊平，湿边可能突然变宽；夹住并收口，避免出现悬空水膜
+    const taper =
+      smoothstep(s0 + 0.006, s0 + 0.018, s) * smoothstep(s1 - 0.006, s1 - 0.018, s);
+    const maxHalf = 0.0045;
+    const left = Math.max(span.left, -maxHalf) * taper;
+    const right = Math.min(span.right, maxHalf) * taper;
     for (let c = 0; c < cols; c++) {
       const t = left + ((right - left) * c) / (cols - 1);
       const p = field.pointAt(s, t);

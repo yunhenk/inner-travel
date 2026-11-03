@@ -36,7 +36,7 @@ export class CameraRig {
     this.field = options.field;
     this.hegu = options.hegu.clone();
     this.mode = options.mode ?? 'observe';
-    this.s = this.field.domain.s0 + 0.006;
+    this.s = this.field.domain.s0 + 0.02;
     this.reducedMotion =
       typeof window !== 'undefined' &&
       window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -70,6 +70,11 @@ export class CameraRig {
     this.applyMode(this.mode);
   }
 
+  /** 当前关注弧长：游为相机所在 s，观/驻为合谷 */
+  getFocusS(): number {
+    return this.mode === 'fly' ? this.s : this.field.heguS;
+  }
+
   /** 地形参数变化后重绑地形场（走廊拓扑不变） */
   setField(field: TerrainField, hegu: THREE.Vector3): void {
     this.field = field;
@@ -93,7 +98,7 @@ export class CameraRig {
       this.controls.update();
     } else {
       this.initializedFly = false;
-      this.s = this.field.domain.s0 + 0.008;
+      this.s = this.field.domain.s0 + 0.02;
       this.direction = 1;
     }
   }
@@ -108,8 +113,8 @@ export class CameraRig {
 
   private updateFly(dt: number, elapsed: number): void {
     const { s0, s1 } = this.field.domain;
-    const start = s0 + 0.008;
-    const end = s1 - 0.008;
+    const start = s0 + 0.02;
+    const end = s1 - 0.03;
     const speed = this.reducedMotion ? 0.002 : 0.011;
     this.s += speed * dt * this.direction;
     if (this.s >= end) {

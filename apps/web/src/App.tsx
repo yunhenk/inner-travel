@@ -17,6 +17,7 @@ const DEFAULT_VISIBILITY: SceneVisibility = {
   terrain: true,
   water: true,
   body: false,
+  qi: true,
   mist: true,
   markers: true,
   labels: false,
@@ -35,7 +36,8 @@ function parseNumber(value: string | null, fallback: number): number {
 export function App() {
   const query = useMemo(() => new URLSearchParams(window.location.search), []);
   const meridian = useMemo(() => parseMeridian(meridianJson), []);
-  const master = useMemo(() => findPoint(meridian, 'LI4'), [meridian]);
+  const [activeCode, setActiveCode] = useState('LI4');
+  const master = useMemo(() => findPoint(meridian, activeCode), [meridian, activeCode]);
   const hideUi = query.get('ui') === '0';
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -52,6 +54,7 @@ export function App() {
     ...DEFAULT_VISIBILITY,
     labels: query.get('labels') === '1',
     body: query.get('body') === '1',
+    qi: query.get('qi') !== '0',
     mist: query.get('mist') !== '0',
   }));
   const [fps, setFps] = useState(0);
@@ -71,6 +74,7 @@ export function App() {
         visibility,
         onStats: setFps,
         onReady: () => setReady(true),
+        onStopChange: setActiveCode,
       });
       hostRef.current = host;
       setTriangles(host.getTriangleCount());

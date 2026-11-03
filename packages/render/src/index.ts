@@ -6,3 +6,4 @@ export * from './body/bodyBase.js';
 export * from './markers/MeridianMarkers.js';
 export * from './mist/MistView.js';
 export * from './camera/CameraRig.js';
+export * from './qi/QiView.js';

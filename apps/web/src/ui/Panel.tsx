@@ -2,6 +2,14 @@ import type { ViewMode } from '@inner/render';
 import type { SceneParams, SceneVisibility } from '../scene/SceneHost.js';
 import type { Acupoint } from '@inner/core';
 
+const TAGLINES: Record<string, string> = {
+  LI1: '一线初泉',
+  LI3: '碎石浅溪',
+  LI4: '两山相合，众水归谷',
+  LI5: '两筋如峡',
+  LI11: '大河回旋',
+};
+
 const MODES: Array<{ id: ViewMode; label: string; hint: string }> = [
   { id: 'observe', label: '观', hint: '自由环视' },
   { id: 'fly', label: '游', hint: '贴谷飞行' },
@@ -30,9 +38,9 @@ export function Panel(props: PanelProps) {
       <header className="panel-head">
         <span className="eyebrow">手阳明大肠经 · 金</span>
         <h2>
-          合谷 <span className="code">LI4</span>
+          {master.name} <span className="code">{master.code}</span>
         </h2>
-        <p className="tagline">两山相合，众水归谷</p>
+        <p className="tagline">{TAGLINES[master.code] ?? master.text.sceneCue}</p>
       </header>
 
       <section className="panel-section">
@@ -106,6 +114,11 @@ export function Panel(props: PanelProps) {
             label="水"
             checked={visibility.water}
             onChange={(v) => props.onVisibility({ water: v })}
+          />
+          <Toggle
+            label="气"
+            checked={visibility.qi}
+            onChange={(v) => props.onVisibility({ qi: v })}
           />
           <Toggle
             label="身体"

@@ -10,11 +10,13 @@ import {
   createBodyView,
   createMarkerView,
   createMistView,
+  createQiView,
   createTerrainView,
   createWaterView,
   type BodyView,
   type MarkerView,
   type MistView,
+  type QiView,
   type TerrainView,
   type ViewMode,
   type WaterView,
@@ -31,6 +33,7 @@ export interface SceneVisibility {
   terrain: boolean;
   water: boolean;
   body: boolean;
+  qi: boolean;
   mist: boolean;
   markers: boolean;
   labels: boolean;
@@ -43,12 +46,14 @@ export interface SceneHostOptions {
   visibility: SceneVisibility;
   onStats?: (fps: number) => void;
   onReady?: () => void;
+  onStopChange?: (code: string) => void;
 }
 
 interface Layers {
   terrain: TerrainView;
   water: WaterView;
   body: BodyView;
+  qi: QiView;
   markers: MarkerView;
   mist: MistView;
 }
@@ -62,6 +67,8 @@ export class SceneHost {
   private readonly meridian: Meridian;
   private readonly onStats?: (fps: number) => void;
   private readonly onReady?: () => void;
+  private readonly onStopChange?: (code: string) => void;
+  private activeCode = 'LI4';
   private lastTime = 0;
   private readonly resizeObserver: ResizeObserver;
 
@@ -87,6 +94,7 @@ export class SceneHost {
     this.mode = options.mode;
     this.onStats = options.onStats;
     this.onReady = options.onReady;
+    this.onStopChange = options.onStopChange;
 
     const route = buildRoute(this.meridian, M0_CODES);
     this.corridor = buildCorridor(route, {
@@ -168,6 +176,7 @@ export class SceneHost {
     const water = createWaterView(this.corridor);
     const mist = createMistView(this.corridor.field);
     const markers = createMarkerView(this.corridor.field.route, this.corridor.field);
+    const qi = createQiView(this.corridor.field);
     const body = createBodyView({
       zc0: zCenterAt(this.corridor, -0.006),
       zc1: zCenterAt(this.corridor, 0.098),
@@ -177,9 +186,10 @@ export class SceneHost {
 
     terrain.setFogDensity(this.params.fogDensity);
     water.setFogDensity(this.params.fogDensity);
+    qi.setPixelScale(this.qiPixelScale());
 
-    this.scene.add(body.group, terrain.group, water.group, mist.group, markers.group);
-    return { terrain, water, body, markers, mist };
+    this.scene.add(body.group, terrain.group, water.group, mist.group, markers.group, qi.group);
+    return { terrain, water, body, markers, mist, qi };
   }
 
   private disposeLayers(): void {
@@ -189,11 +199,13 @@ export class SceneHost {
       this.layers.water.group,
       this.layers.mist.group,
       this.layers.markers.group,
+      this.layers.qi.group,
     );
     this.layers.terrain.dispose();
     this.layers.water.dispose();
     this.layers.mist.dispose();
     this.layers.markers.dispose();
+    this.layers.qi.dispose();
     this.layers.body.dispose();
   }
 
@@ -225,6 +237,7 @@ export class SceneHost {
     this.layers.terrain.group.visible = this.visibility.terrain;
     this.layers.water.group.visible = this.visibility.water;
     this.layers.body.group.visible = this.visibility.body;
+    this.layers.qi.group.visible = this.visibility.qi;
     this.layers.mist.group.visible = this.visibility.mist;
     this.layers.markers.group.visible = this.visibility.markers;
     this.layers.markers.setLabelsVisible(this.visibility.labels);
@@ -245,27 +258,32 @@ export class SceneHost {
       this.layers.water.group,
       this.layers.mist.group,
       this.layers.markers.group,
+      this.layers.qi.group,
     );
     this.layers.terrain.dispose();
     this.layers.water.dispose();
     this.layers.mist.dispose();
     this.layers.markers.dispose();
+    this.layers.qi.dispose();
 
     this.corridor = corridor;
     const terrain = createTerrainView(corridor);
     const water = createWaterView(corridor);
     const mist = createMistView(corridor.field);
     const markers = createMarkerView(corridor.field.route, corridor.field);
+    const qi = createQiView(corridor.field);
     terrain.setFogDensity(this.params.fogDensity);
     water.setFogDensity(this.params.fogDensity);
+    qi.setPixelScale(this.qiPixelScale());
 
-    this.scene.add(terrain.group, water.group, mist.group, markers.group);
+    this.scene.add(terrain.group, water.group, mist.group, markers.group, qi.group);
     this.layers = {
       ...this.layers,
       terrain,
       water,
       mist,
       markers,
+      qi,
     };
 
     this.heguVec.set(corridor.hegu[0], corridor.hegu[1], corridor.hegu[2]);
@@ -280,6 +298,7 @@ export class SceneHost {
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
+    this.layers.qi.setPixelScale(this.qiPixelScale());
   }
 
   private loop = (): void => {
@@ -296,6 +315,11 @@ export class SceneHost {
     const time = now / 1000;
 
     this.rig.update(dt, time);
+    const stop = this.corridor.field.route.nearestStop(this.rig.getFocusS());
+    if (stop.code !== this.activeCode) {
+      this.activeCode = stop.code;
+      this.onStopChange?.(stop.code);
+    }
     const showContext = this.mode === 'observe';
     this.layers.body.group.visible = this.visibility.body && showContext;
     this.layers.markers.group.visible = this.visibility.markers && showContext;
@@ -304,6 +328,8 @@ export class SceneHost {
     this.layers.mist.group.visible = this.visibility.mist && !near;
     this.layers.water.update(time);
     this.layers.mist.update(time);
+    const qiOpacity = this.mode === 'fly' ? 0.78 : this.mode === 'dwell' ? 0.72 : 0.42;
+    this.layers.qi.update(time, 0.62, this.visibility.qi ? qiOpacity : 0);
     this.layers.terrain.material.uniforms.uTime!.value = time;
     this.renderer.render(this.scene, this.camera);
 
@@ -321,6 +347,11 @@ export class SceneHost {
       this.lastStats = time;
     }
   };
+
+  private qiPixelScale(): number {
+    const fov = (this.camera.fov * Math.PI) / 180;
+    return this.renderer.domElement.height / (2 * Math.tan(fov / 2));
+  }
 
   getTriangleCount(): number {
     const terrain = this.corridor.terrain.indices.length / 3;

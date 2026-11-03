@@ -55,7 +55,8 @@ const fragmentShader = /* glsl */ `
     col = mix(col, uFog, clamp(fog, 0.0, 0.9));
 
     float edgeFade = smoothstep(0.0, 0.14, min(vUv.y, 1.0 - vUv.y));
-    gl_FragColor = vec4(col, uOpacity * (0.55 + 0.45 * edgeFade));
+    float endFade = smoothstep(0.0, 0.07, vUv.x) * smoothstep(1.0, 0.93, vUv.x);
+    gl_FragColor = vec4(col, uOpacity * (0.55 + 0.45 * edgeFade) * endFade);
     #include <colorspace_fragment>
   }
 `;
