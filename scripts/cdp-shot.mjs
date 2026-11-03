@@ -1,7 +1,7 @@
 import { writeFile } from 'node:fs/promises';
 
 const url = process.argv[2] ?? 'http://127.0.0.1:5173/';
-const out = process.argv[3] ?? '/tmp/shot.png';
+const out = process.argv[3] ?? '.tmp/shot.png';
 const waitMs = Number(process.argv[4] ?? 6000);
 const postWait = Number(process.env.POST_WAIT ?? 800);
 const port = Number(process.env.CDP_PORT ?? 9222);
