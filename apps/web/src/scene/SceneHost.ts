@@ -29,6 +29,22 @@ import {
   type WaterView,
 } from '@inner/render';
 
+export type SegmentId = 'hand' | 'forearm';
+
+export const SEGMENT_TOUR: Record<SegmentId, readonly string[]> = {
+  hand: ['LI3', 'LI4', 'LI5'],
+  forearm: ['LI6', 'LI7', 'LI8', 'LI9', 'LI10', 'LI11'],
+};
+
+const SEGMENT_CODES: Record<SegmentId, readonly string[]> = {
+  hand: M0_CODES,
+  forearm: ['LI6', 'LI7', 'LI8', 'LI9', 'LI10', 'LI11'],
+};
+
+const SEGMENT_START: Record<SegmentId, string> = { hand: 'LI3', forearm: 'LI6' };
+const SEGMENT_END: Record<SegmentId, string> = { hand: 'LI5', forearm: 'LI11' };
+const SEGMENT_FOCUS: Record<SegmentId, string> = { hand: 'LI4', forearm: 'LI11' };
+
 export interface SceneParams {
   valleyDepth: number;
   riverWidth: number;
@@ -50,6 +66,7 @@ export interface SceneVisibility {
 
 export interface SceneHostOptions {
   meridian: Meridian;
+  segment?: SegmentId;
   mode: ViewMode;
   params: SceneParams;
   visibility: SceneVisibility;
@@ -100,6 +117,8 @@ export class SceneHost {
 
   private readonly route: Route;
   private readonly field: TerrainField;
+  private readonly codes: readonly string[];
+  private readonly segment: SegmentId;
   private corridor: CorridorMeshData | null = null;
   private layers: Layers | null = null;
   private params: SceneParams;
@@ -118,6 +137,8 @@ export class SceneHost {
   constructor(container: HTMLElement, options: SceneHostOptions) {
     this.container = container;
     this.meridian = options.meridian;
+    this.segment = options.segment ?? 'hand';
+    this.codes = SEGMENT_CODES[this.segment];
     this.params = { ...options.params };
     this.visibility = { ...options.visibility };
     this.mode = options.mode;
@@ -127,8 +148,9 @@ export class SceneHost {
     this.onPressChange = options.onPressChange;
     this.onTourArrive = options.onTourArrive;
 
-    this.route = buildRoute(this.meridian, M0_CODES);
+    this.route = buildRoute(this.meridian, this.codes);
     this.field = new TerrainField(this.route, this.buildOptions());
+    this.activeCode = SEGMENT_FOCUS[this.segment];
 
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -185,12 +207,28 @@ export class SceneHost {
   }
 
   private buildOptions() {
+    const start = this.route.stopAt(SEGMENT_START[this.segment]);
+    const end = this.route.stopAt(SEGMENT_END[this.segment]);
+    const focus = this.route.stopAt(SEGMENT_FOCUS[this.segment]);
+    const autoCodes =
+      this.segment === 'hand' ? (['LI3', 'LI4', 'LI5'] as const) : (['LI6', 'LI8', 'LI11'] as const);
+    const auto = autoCodes.map((code) => this.route.stopAt(code).s) as [number, number, number];
     return {
       valleyDepth: this.params.valleyDepth,
       riverWidth: this.params.riverWidth,
       relief: this.params.relief,
       archetype: this.params.archetype,
       tide: 0.55,
+      segment: {
+        surface: this.segment,
+        s0: Math.max(0, start.s - 0.004),
+        s1: Math.min(this.route.curve.length, end.s + 0.006),
+        focusS: focus.s,
+        autoS: auto,
+        tMin: this.segment === 'hand' ? -0.0125 : -0.012,
+        tMax: this.segment === 'hand' ? 0.0245 : 0.012,
+        ridgeOffset: this.segment === 'hand' ? 0.0078 : 0.0065,
+      },
     };
   }
 
@@ -198,7 +236,7 @@ export class SceneHost {
     const field = this.field;
     const options = this.buildOptions();
     try {
-      const data = await this.corridorService.build(this.meridian, M0_CODES, options);
+      const data = await this.corridorService.build(this.meridian, this.codes, options);
       if (this.disposed) return;
       this.swapCorridor({ field, ...data });
     } catch (error) {
@@ -235,6 +273,10 @@ export class SceneHost {
       spanUlnar: 0.0205,
       spanRadial: 0.0105,
     });
+    if (this.segment === 'forearm') {
+      body.group.rotation.x = -Math.PI / 2;
+      anchors.group.rotation.x = -Math.PI / 2;
+    }
 
     terrain.setFogDensity(this.params.fogDensity);
     water.setFogDensity(this.params.fogDensity);
@@ -293,7 +335,16 @@ export class SceneHost {
 
   goToStop(code: string): void {
     const stop = this.route.stopAt(code);
-    const offset = code === 'LI5' ? -0.008 : code === 'LI3' ? 0.004 : 0;
+    const offset =
+      code === 'LI11'
+        ? -0.008
+        : code === 'LI6'
+          ? 0.004
+          : code === 'LI5'
+            ? -0.008
+            : code === 'LI3'
+              ? 0.004
+              : 0;
     this.rig.goTo(stop.s + offset);
   }
 
@@ -373,7 +424,7 @@ export class SceneHost {
     const token = ++this.rebuildToken;
 
     this.corridorService
-      .build(this.meridian, M0_CODES, options)
+      .build(this.meridian, this.codes, options)
       .then((data) => {
         if (this.disposed || token !== this.rebuildToken) return;
         this.swapCorridor({ field, ...data });
@@ -605,9 +656,9 @@ export class SceneHost {
 }
 
 function zCenterAt(corridor: CorridorMeshData, x: number): number {
-  const route = corridor.field.route;
-  const a = route.stopAt('LI3');
-  const b = route.stopAt('LI5');
+  const stops = corridor.field.route.stops;
+  const a = stops[0]!;
+  const b = stops[stops.length - 1]!;
   const t = (x - a.position[0]) / Math.max(1e-6, b.position[0] - a.position[0]);
   return a.position[2] + (b.position[2] - a.position[2]) * Math.max(0, Math.min(1, t));
 }

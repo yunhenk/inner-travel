@@ -1,5 +1,5 @@
 import type { ViewMode } from '@inner/render';
-import type { SceneParams, SceneVisibility } from '../scene/SceneHost.js';
+import type { SceneParams, SceneVisibility, SegmentId } from '../scene/SceneHost.js';
 import type { Acupoint } from '@inner/core';
 import { ARCHETYPE_OPTIONS } from '@inner/scene-gen';
 import type { TourStateName } from '../journey/tourMachine.js';
@@ -12,13 +12,20 @@ const TAGLINES: Record<string, string> = {
   LI11: '大河回旋',
 };
 
+const SEGMENTS: Array<{ id: SegmentId; label: string; hint: string }> = [
+  { id: 'hand', label: '手背', hint: 'LI3–LI5' },
+  { id: 'forearm', label: '前臂', hint: 'LI6–LI11' },
+];
+
 const MODES: Array<{ id: ViewMode; label: string; hint: string }> = [
   { id: 'observe', label: '观', hint: '自由环视' },
   { id: 'fly', label: '游', hint: '贴谷飞行' },
-  { id: 'dwell', label: '驻', hint: '停驻合谷' },
+  { id: 'dwell', label: '驻', hint: '停驻主穴' },
 ];
 
 export interface PanelProps {
+  segment: SegmentId;
+  onSegment(segment: SegmentId): void;
   mode: ViewMode;
   params: SceneParams;
   visibility: SceneVisibility;
@@ -53,6 +60,24 @@ export function Panel(props: PanelProps) {
       </header>
 
       <section className="panel-section">
+        <h3>经段</h3>
+        <div className="segments" role="group" aria-label="经脉段落">
+          {SEGMENTS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={props.segment === item.id ? 'segment tab active' : 'segment tab'}
+              aria-pressed={props.segment === item.id}
+              onClick={() => props.onSegment(item.id)}
+            >
+              <span className="segment-label">{item.label}</span>
+              <span className="segment-hint">{item.hint}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="panel-section">
         <h3>三境</h3>
         <div className="segmented" role="group" aria-label="巡游方式">
           {MODES.map((item) => (
@@ -82,7 +107,13 @@ export function Panel(props: PanelProps) {
                 : '开始巡游'}
           </button>
           <span className="tour-status" data-state={props.tourState}>
-            {tourStatus(props.tourState, props.tourStops[props.tourIndex]?.name)}
+            {tourStatus(
+              props.tourState,
+              props.tourStops[props.tourIndex]?.name,
+              props.tourStops.length > 3
+                ? `${props.tourStops[0]?.name} → … → ${props.tourStops.at(-1)?.name}`
+                : props.tourStops.map((stop) => stop.name).join(' → '),
+            )}
           </span>
         </div>
         <div className="tour-stops" role="group" aria-label="巡游站点">
@@ -299,7 +330,7 @@ function Toggle(props: {
   );
 }
 
-function tourStatus(state: TourStateName, name?: string): string {
+function tourStatus(state: TourStateName, name?: string, hint?: string): string {
   switch (state) {
     case 'moving':
       return `前往 ${name ?? ''}`;
@@ -308,7 +339,7 @@ function tourStatus(state: TourStateName, name?: string): string {
     case 'finished':
       return '巡游完成';
     default:
-      return '三间 → 合谷 → 阳溪';
+      return hint ?? '选一站开始';
   }
 }
 

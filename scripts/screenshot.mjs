@@ -58,6 +58,8 @@ const shots = [
   ['observe', '?mode=observe&labels=1&archetype=auto'],
   ['fly', '?mode=fly&archetype=auto'],
   ['dwell', '?mode=dwell&archetype=auto'],
+  ['forearm', '?segment=forearm&mode=observe&labels=1&archetype=auto'],
+  ['forearm-fly', '?segment=forearm&mode=fly&labels=1&archetype=auto'],
   ['tour', '?mode=observe&labels=1&archetype=auto', "document.querySelector('.tour-start').click()", 3200],
   ['archetype-stream', '?mode=observe&labels=1&archetype=stream'],
   ['archetype-gorge', '?mode=observe&labels=1&archetype=gorge'],

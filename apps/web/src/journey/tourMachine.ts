@@ -8,13 +8,14 @@ export type TourStateName = 'idle' | 'moving' | 'holding' | 'finished';
 
 interface TourContext {
   index: number;
+  total: number;
 }
 
 export type TourEvent =
-  | { type: 'START' }
+  | { type: 'START'; total?: number }
   | { type: 'STOP' }
   | { type: 'ARRIVED' }
-  | { type: 'SELECT'; index: number };
+  | { type: 'SELECT'; index: number; total?: number };
 
 const HOLD_MS = 3600;
 
@@ -33,14 +34,23 @@ export const tourMachine = createMachine({
   id: 'tour',
   initial: 'idle',
   types: {} as { context: TourContext; events: TourEvent },
-  context: { index: 0 },
+  context: { index: 0, total: TOUR_STOPS.length },
   states: {
     idle: {
       on: {
-        START: { target: 'moving', actions: assign({ index: 0 }) },
+        START: {
+          target: 'moving',
+          actions: assign({
+            index: 0,
+            total: ({ event }) => event.total ?? TOUR_STOPS.length,
+          }),
+        },
         SELECT: {
           target: 'moving',
-          actions: assign({ index: ({ event }) => event.index }),
+          actions: assign({
+            index: ({ event }) => event.index,
+            total: ({ event }) => event.total ?? TOUR_STOPS.length,
+          }),
         },
       },
     },
@@ -50,7 +60,10 @@ export const tourMachine = createMachine({
         STOP: 'idle',
         SELECT: {
           target: 'moving',
-          actions: assign({ index: ({ event }) => event.index }),
+          actions: assign({
+            index: ({ event }) => event.index,
+            total: ({ event }) => event.total ?? TOUR_STOPS.length,
+          }),
         },
       },
     },
@@ -58,7 +71,7 @@ export const tourMachine = createMachine({
       after: {
         [HOLD_MS]: [
           {
-            guard: ({ context }) => context.index < TOUR_STOPS.length - 1,
+            guard: ({ context }) => context.index < context.total - 1,
             target: 'moving',
             actions: assign({ index: ({ context }) => context.index + 1 }),
           },
@@ -69,16 +82,28 @@ export const tourMachine = createMachine({
         STOP: 'idle',
         SELECT: {
           target: 'moving',
-          actions: assign({ index: ({ event }) => event.index }),
+          actions: assign({
+            index: ({ event }) => event.index,
+            total: ({ event }) => event.total ?? TOUR_STOPS.length,
+          }),
         },
       },
     },
     finished: {
       on: {
-        START: { target: 'moving', actions: assign({ index: 0 }) },
+        START: {
+          target: 'moving',
+          actions: assign({
+            index: 0,
+            total: ({ event }) => event.total ?? TOUR_STOPS.length,
+          }),
+        },
         SELECT: {
           target: 'moving',
-          actions: assign({ index: ({ event }) => event.index }),
+          actions: assign({
+            index: ({ event }) => event.index,
+            total: ({ event }) => event.total ?? TOUR_STOPS.length,
+          }),
         },
         STOP: 'idle',
       },

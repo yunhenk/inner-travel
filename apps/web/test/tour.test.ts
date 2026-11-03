@@ -26,6 +26,16 @@ describe('逐穴巡游状态机', () => {
     expect(actor.getSnapshot().context.index).toBe(TOUR_STOPS.length - 1);
   });
 
+  it('可以按 6 站巡游（前臂段）', () => {
+    const actor = start();
+    actor.send({ type: 'START', total: 6 });
+    expect(actor.getSnapshot().context.total).toBe(6);
+    actor.send({ type: 'ARRIVED' });
+    actor.send({ type: 'SELECT', index: 5, total: 6 });
+    expect(actor.getSnapshot().context.index).toBe(5);
+    expect(actor.getSnapshot().context.total).toBe(6);
+  });
+
   it('STOP 能从任意进行态回到 idle', () => {
     const actor = start();
     actor.send({ type: 'START' });

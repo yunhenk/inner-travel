@@ -1,6 +1,7 @@
 import {
   clamp,
   flowAt,
+  forearmRadii,
   hashSeed,
   mulberry32,
   palmDorsalY,
@@ -18,8 +19,26 @@ import {
 } from './archetypes.js';
 import { fbm2, ridged2 } from '../noise.js';
 
+export type TerrainSurface = 'hand' | 'forearm';
+
+/** 一段走廊的参数域：手背或前臂 */
+export interface TerrainSegment {
+  surface: TerrainSurface;
+  s0: number;
+  s1: number;
+  /** 这一段的主穴/汇水中心弧长（手背为合谷，前臂为曲池） */
+  focusS: number;
+  /** 自动原型的三个混合中心（溪/谷/峡） */
+  autoS: [number, number, number];
+  tMin: number;
+  tMax: number;
+  ridgeOffset: number;
+}
+
 export interface TerrainOptions {
   seed: number;
+  /** 不传时为 M0 合谷走廊 */
+  segment?: TerrainSegment;
   /** 'auto' 沿经在三间/合谷/阳溪之间混合；其余为固定原型 */
   archetype?: ArchetypeChoice;
   /** 谷深倍率，1 为设计基准 */
@@ -81,6 +100,8 @@ export class TerrainField {
   readonly domain: CorridorDomain;
   readonly options: TerrainOptions;
   readonly archetype: ArchetypeChoice;
+  readonly surface: TerrainSurface;
+  readonly segment: TerrainSegment;
   readonly palette: TerrainPalette;
 
   private readonly seedA: number;
@@ -98,23 +119,36 @@ export class TerrainField {
     this.seedA = hashSeed('corridor', this.options.seed);
     this.seedB = hashSeed('pool', this.options.seed);
 
-    const li3 = route.stopAt('LI3');
-    const li5 = route.stopAt('LI5');
-    const hegu = route.stopAt('LI4');
-    this.poolS = hegu.s;
-    this.autoS3 = li3.s;
-    this.autoS4 = hegu.s;
-    this.autoS5 = li5.s;
+    if (this.options.segment) {
+      this.segment = this.options.segment;
+    } else {
+      const li3 = route.stopAt('LI3');
+      const li5 = route.stopAt('LI5');
+      const hegu = route.stopAt('LI4');
+      this.segment = {
+        surface: 'hand',
+        s0: Math.max(0, li3.s - 0.004),
+        s1: Math.min(route.curve.length, li5.s + 0.006),
+        focusS: hegu.s,
+        autoS: [li3.s, hegu.s, li5.s],
+        tMin: -0.0125,
+        tMax: 0.0245,
+        ridgeOffset: 0.0078,
+      };
+    }
+    this.surface = this.segment.surface;
+    this.poolS = this.segment.focusS;
+    this.autoS3 = this.segment.autoS[0];
+    this.autoS4 = this.segment.autoS[1];
+    this.autoS5 = this.segment.autoS[2];
 
-    const s0 = Math.max(0, li3.s - 0.004);
-    const s1 = Math.min(route.curve.length, li5.s + 0.006);
     this.domain = {
-      s0,
-      s1,
-      tMin: -0.0125,
-      tMax: 0.0245,
-      heguS: hegu.s,
-      ridgeOffset: 0.0078,
+      s0: this.segment.s0,
+      s1: this.segment.s1,
+      tMin: this.segment.tMin,
+      tMax: this.segment.tMax,
+      heguS: this.segment.focusS,
+      ridgeOffset: this.segment.ridgeOffset,
     };
     this.palette = buildPalette(route, this.archetype);
   }
@@ -137,6 +171,14 @@ export class TerrainField {
 
   /** 从 (s,t) 求世界位置；y 重新投影到手背基面，再叠加位移 */
   pointAt(s: number, t: number): Vec3 {
+    if (this.surface === 'forearm') {
+      const frame = this.route.curve.frameAt(s);
+      const x = frame.position[0];
+      // 前臂段用桡侧切平面近似，保留完整河谷宽度；
+      // 身体仍按旋转后的圆柱显示，边缘允许毫米级悬空。
+      const radii = forearmRadii(x);
+      return [x, radii.z + this.displacementAt(s, t) + 0.00012, t];
+    }
     const frame = this.route.curve.frameAt(s);
     const x = frame.position[0] + frame.lateral[0] * t;
     const z = frame.position[2] + frame.lateral[2] * t;

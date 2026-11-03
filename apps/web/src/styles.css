@@ -195,6 +195,12 @@ body {
   color: var(--ink-faint);
 }
 
+.segments {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
 .segmented {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

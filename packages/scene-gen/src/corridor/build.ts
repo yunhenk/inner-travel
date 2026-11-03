@@ -218,10 +218,12 @@ function computeGridNormals(
       const du = sub(at(r1, c), at(r0, c));
       const dv = sub(at(r, c1), at(r, c0));
       const n = normalize(cross(dv, du));
+      // 高度场应朝上；前臂段的 x/z 方向与手背相反，需要翻转
+      const sign = n[1] < 0 ? -1 : 1;
       const i = (r * cols + c) * 3;
-      normals[i] = n[0];
-      normals[i + 1] = n[1];
-      normals[i + 2] = n[2];
+      normals[i] = n[0] * sign;
+      normals[i + 1] = n[1] * sign;
+      normals[i + 2] = n[2] * sign;
     }
   }
   return normals;

@@ -145,12 +145,22 @@ export class CameraRig {
     this.controls.autoRotate = false;
 
     if (mode === 'observe') {
-      this.camera.position.copy(this.hegu).add(new THREE.Vector3(0.024, 0.008, 0.002));
-      this.controls.target.copy(this.hegu).add(new THREE.Vector3(-0.012, -0.001, 0));
+      if (this.field.surface === 'forearm') {
+        this.camera.position.copy(this.hegu).add(new THREE.Vector3(0.008, 0.022, 0.028));
+        this.controls.target.copy(this.hegu).add(new THREE.Vector3(-0.006, -0.002, 0));
+      } else {
+        this.camera.position.copy(this.hegu).add(new THREE.Vector3(0.024, 0.008, 0.002));
+        this.controls.target.copy(this.hegu).add(new THREE.Vector3(-0.012, -0.001, 0));
+      }
       this.controls.update();
     } else if (mode === 'dwell') {
-      this.camera.position.copy(this.hegu).add(new THREE.Vector3(0.0085, 0.0042, 0.0028));
-      this.controls.target.copy(this.hegu);
+      if (this.field.surface === 'forearm') {
+        this.camera.position.copy(this.hegu).add(new THREE.Vector3(0.003, 0.012, 0.018));
+        this.controls.target.copy(this.hegu);
+      } else {
+        this.camera.position.copy(this.hegu).add(new THREE.Vector3(0.0085, 0.0042, 0.0028));
+        this.controls.target.copy(this.hegu);
+      }
       this.controls.update();
     } else {
       this.initializedFly = false;
@@ -214,11 +224,14 @@ export class CameraRig {
     );
 
     const bob = Math.sin(elapsed * 0.55) * 0.0006;
-    const targetPos = new THREE.Vector3(
-      p[0],
-      p[1] + (this.reducedMotion ? 0.006 : 0.0058 + bob),
-      p[2],
-    );
+    const targetPos =
+      this.field.surface === 'forearm'
+        ? new THREE.Vector3(p[0], p[1] + 0.009, p[2] + 0.011)
+        : new THREE.Vector3(
+            p[0],
+            p[1] + (this.reducedMotion ? 0.006 : 0.0058 + bob),
+            p[2],
+          );
 
     const lookTarget = new THREE.Vector3(
       ahead[0],
