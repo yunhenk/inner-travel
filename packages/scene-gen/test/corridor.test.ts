@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildRoute, parseMeridian } from '@inner/core';
-import { buildCorridor, M0_CODES } from '../src/index.js';
+import { buildCorridor, buildCorridorData, M0_CODES } from '../src/index.js';
 import liJson from '../../../content/meridians/hand-yangming-large-intestine.json';
 
 const meridian = parseMeridian(liJson);
@@ -66,6 +66,14 @@ describe('合谷走廊', () => {
     const again = buildCorridor(route);
     expect(again.terrain.positions).toEqual(corridor.terrain.positions);
     expect(again.wet).toEqual(corridor.wet);
+  });
+
+  it('拆出的纯数据构建与完整构建一致', () => {
+    const data = buildCorridorData(corridor.field, {});
+    expect(data.terrain.positions).toEqual(corridor.terrain.positions);
+    expect(data.terrain.indices).toEqual(corridor.terrain.indices);
+    expect(data.wet).toEqual(corridor.wet);
+    expect(data.water.river.positions).toEqual(corridor.water.river.positions);
   });
 
   it('水面网格贴合河道，宽度为正', () => {

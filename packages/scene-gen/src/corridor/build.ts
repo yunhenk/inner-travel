@@ -48,6 +48,8 @@ export const DEFAULT_BUILD: Required<
   dtFine: 0.0003,
 };
 
+export type CorridorData = Omit<CorridorMeshData, 'field'>;
+
 /**
  * 生成手背合谷走廊的网格数据（纯数据，不依赖 three）。
  * 走廊沿经脉曲线展开，横向坐标 t 在手背基面上重新投影，
@@ -58,6 +60,17 @@ export function buildCorridor(
   options: CorridorBuildOptions = {},
 ): CorridorMeshData {
   const field = new TerrainField(route, options);
+  return { field, ...buildCorridorData(field, options) };
+}
+
+/**
+ * 只生成网格数据，不持有 field。
+ * Worker 与主线程共用这一份实现；主线程保留 field 做标记/相机/气路径查询。
+ */
+export function buildCorridorData(
+  field: TerrainField,
+  options: CorridorBuildOptions = {},
+): CorridorData {
   const { s0, s1, tMin, tMax } = field.domain;
   const ds = options.ds ?? DEFAULT_BUILD.ds;
   const dtCoarse = options.dtCoarse ?? DEFAULT_BUILD.dtCoarse;
@@ -123,7 +136,6 @@ export function buildCorridor(
   const pool = buildPool(field);
 
   return {
-    field,
     rows,
     cols,
     tValues,

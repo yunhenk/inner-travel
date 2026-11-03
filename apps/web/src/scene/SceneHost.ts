@@ -2,10 +2,12 @@ import * as THREE from 'three';
 import { buildRoute, type Meridian } from '@inner/core';
 import {
   M0_CODES,
+  TerrainField,
   buildCorridor,
   type ArchetypeChoice,
   type CorridorMeshData,
 } from '@inner/scene-gen';
+import { CorridorService } from './corridorService.js';
 import {
   CameraRig,
   createBodyView,
@@ -72,6 +74,7 @@ export class SceneHost {
   private readonly camera: THREE.PerspectiveCamera;
   private readonly rig: CameraRig;
   private readonly meridian: Meridian;
+  private readonly corridorService = new CorridorService();
   private readonly onStats?: (fps: number) => void;
   private readonly onReady?: () => void;
   private readonly onStopChange?: (code: string) => void;
@@ -101,6 +104,7 @@ export class SceneHost {
   private disposed = false;
   private pendingRebuild = false;
   private paramsDirtyAt = 0;
+  private rebuildToken = 0;
   private frames = 0;
   private lastStats = 0;
 
@@ -274,6 +278,7 @@ export class SceneHost {
     }
     this.pendingRebuild = true;
     this.paramsDirtyAt = performance.now();
+    this.rebuildToken += 1;
   }
 
   setVisibility(visibility: Partial<SceneVisibility>): void {
@@ -311,14 +316,31 @@ export class SceneHost {
   private rebuildTerrain(): void {
     this.pendingRebuild = false;
     const route = this.corridor.field.route;
-    const corridor = buildCorridor(route, {
+    const options = {
       valleyDepth: this.params.valleyDepth,
       riverWidth: this.params.riverWidth,
       relief: this.params.relief,
       archetype: this.params.archetype,
       tide: 0.55,
-    });
+    };
+    // field 很便宜，主线程先建好；网格由 Worker/缓存生成，期间保留旧画面
+    const field = new TerrainField(route, options);
+    const token = ++this.rebuildToken;
 
+    this.corridorService
+      .build(this.meridian, M0_CODES, options)
+      .then((data) => {
+        if (this.disposed || token !== this.rebuildToken) return;
+        this.swapCorridor({ field, ...data });
+      })
+      .catch((error) => {
+        console.error('走廊异步生成失败，回退主线程', error);
+        if (this.disposed || token !== this.rebuildToken) return;
+        this.swapCorridor(buildCorridor(route, options));
+      });
+  }
+
+  private swapCorridor(corridor: CorridorMeshData): void {
     this.scene.remove(
       this.layers.terrain.group,
       this.layers.water.group,
@@ -499,6 +521,7 @@ export class SceneHost {
 
   dispose(): void {
     this.disposed = true;
+    this.corridorService.dispose();
     this.clearPressTimer();
     this.renderer.domElement.removeEventListener('pointerdown', this.onPointerDown);
     this.renderer.domElement.removeEventListener('pointermove', this.onPointerMove);
