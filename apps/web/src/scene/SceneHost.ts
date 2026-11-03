@@ -122,6 +122,9 @@ export class SceneHost {
   private neighborCorridor: CorridorMeshData | null = null;
   private neighborLayers: { terrain: TerrainView; water: WaterView } | null = null;
   private neighborToken = 0;
+  private transitionCorridor: CorridorMeshData | null = null;
+  private transitionTerrain: TerrainView | null = null;
+  private transitionToken = 0;
   private params: SceneParams;
   private visibility: SceneVisibility;
   private mode: ViewMode;
@@ -427,6 +430,7 @@ export class SceneHost {
         this.neighborLayers.terrain.group.visible = false;
         this.neighborLayers.water.group.visible = false;
       }
+      if (this.transitionTerrain) this.transitionTerrain.group.visible = false;
       return;
     }
     this.layers.body.setEmphasis(false);
@@ -441,6 +445,9 @@ export class SceneHost {
     if (this.neighborLayers) {
       this.neighborLayers.terrain.group.visible = this.visibility.terrain;
       this.neighborLayers.water.group.visible = this.visibility.water;
+    }
+    if (this.transitionTerrain) {
+      this.transitionTerrain.group.visible = this.visibility.terrain;
     }
     this.updateMarkerVisibility();
   }
@@ -509,6 +516,53 @@ export class SceneHost {
     this.applyVisibility();
     this.prefetchAdjacent();
     this.rebuildNeighbor(this.windowTracker.current);
+    this.rebuildTransition(this.windowTracker.current);
+  }
+
+  /** 跨腕方向的 L1/L2 低模过渡带：只挂地形，不挂水/气 */
+  private rebuildTransition(active: { centerS: number; s0: number; s1: number }): void {
+    const wrist = this.route.stopAt('LI5').s;
+    const dir = active.centerS <= wrist ? 1 : -1;
+    const center = active.centerS + dir * WINDOW_HALF * 2.2;
+    const slot = planCorridorWindow(center, this.route.curve.length, WINDOW_HALF, 0.005);
+    if (Math.abs(slot.s0 - active.s0) < 0.002 && Math.abs(slot.s1 - active.s1) < 0.002) {
+      return;
+    }
+    const options = {
+      ...this.windowOptions(slot),
+      relief: this.params.relief * 0.16,
+      valleyDepth: this.params.valleyDepth * 0.45,
+      ds: 0.0015,
+      dtCoarse: 0.003,
+      dtFine: 0.0015,
+    };
+    const field = new TerrainField(this.route, options);
+    const token = ++this.transitionToken;
+    this.corridorService
+      .build(this.meridian, this.codes, options)
+      .then((data) => {
+        if (this.disposed || token !== this.transitionToken) return;
+        this.mountTransition({ field, ...data });
+      })
+      .catch(() => undefined);
+  }
+
+  private mountTransition(corridor: CorridorMeshData): void {
+    this.disposeTransition();
+    const terrain = createTerrainView(corridor);
+    terrain.setFogDensity(this.params.fogDensity);
+    this.transitionCorridor = corridor;
+    this.transitionTerrain = terrain;
+    this.scene.add(terrain.group);
+    this.applyVisibility();
+  }
+
+  private disposeTransition(): void {
+    if (!this.transitionTerrain) return;
+    this.scene.remove(this.transitionTerrain.group);
+    this.transitionTerrain.dispose();
+    this.transitionTerrain = null;
+    this.transitionCorridor = null;
   }
 
   /** 同法线侧挂一张 L0 邻接 tile；跨腕方向不挂高模 */
@@ -757,6 +811,7 @@ export class SceneHost {
     this.rig.dispose();
     this.armLine.dispose();
     this.disposeNeighbor();
+    this.disposeTransition();
     this.disposeLayers();
     this.renderer.dispose();
     this.renderer.domElement.remove();
