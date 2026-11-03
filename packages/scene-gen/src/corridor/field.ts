@@ -4,6 +4,7 @@ import {
   forearmRadii,
   hashSeed,
   mulberry32,
+  palmDorsalNormal,
   palmDorsalY,
   smoothstep,
   type FlowStage,
@@ -19,7 +20,7 @@ import {
 } from './archetypes.js';
 import { fbm2, ridged2 } from '../noise.js';
 
-export type TerrainSurface = 'hand' | 'forearm';
+export type TerrainSurface = 'hand' | 'forearm' | 'arm';
 
 /** 一段走廊的参数域：手背或前臂 */
 export interface TerrainSegment {
@@ -111,6 +112,7 @@ export class TerrainField {
   private readonly autoS4: number;
   private readonly autoS5: number;
   private readonly flowCache = new Map<number, FlowStage>();
+  private readonly wristS: number;
 
   constructor(route: Route, options: Partial<TerrainOptions> = {}) {
     this.route = route;
@@ -142,6 +144,9 @@ export class TerrainField {
     this.autoS4 = this.segment.autoS[1];
     this.autoS5 = this.segment.autoS[2];
 
+    this.wristS = route.stops.some((stop) => stop.code === 'LI5')
+      ? route.stopAt('LI5').s
+      : this.segment.s0;
     this.domain = {
       s0: this.segment.s0,
       s1: this.segment.s1,
@@ -171,20 +176,70 @@ export class TerrainField {
 
   /** 从 (s,t) 求世界位置；y 重新投影到手背基面，再叠加位移 */
   pointAt(s: number, t: number): Vec3 {
+    const { base, normal } = this.surfaceFrameAt(s, t);
+    const h = this.displacementAt(s, t) + 0.00012;
+    return [
+      base[0] + normal[0] * h,
+      base[1] + normal[1] * h,
+      base[2] + normal[2] * h,
+    ];
+  }
+
+  normalAt(s: number, t: number): Vec3 {
+    return this.surfaceFrameAt(s, t).normal;
+  }
+
+  waterPointAt(s: number, t: number): Vec3 {
+    const { base, normal } = this.surfaceFrameAt(s, t);
+    const lift = this.waterOffsetAt(s);
+    return [
+      base[0] + normal[0] * lift,
+      base[1] + normal[1] * lift,
+      base[2] + normal[2] * lift,
+    ];
+  }
+
+  private surfaceFrameAt(s: number, t: number): { base: Vec3; normal: Vec3 } {
     if (this.surface === 'forearm') {
+      const p = this.route.curve.frameAt(s).position;
+      const r = forearmRadii(p[0]);
+      return { base: [p[0], r.z, t], normal: [0, 1, 0] };
+    }
+    if (this.surface === 'arm') {
       const frame = this.route.curve.frameAt(s);
-      const x = frame.position[0];
-      // 前臂段用桡侧切平面近似，保留完整河谷宽度；
-      // 身体仍按旋转后的圆柱显示，边缘允许毫米级悬空。
-      const radii = forearmRadii(x);
-      return [x, radii.z + this.displacementAt(s, t) + 0.00012, t];
+      const p = frame.position;
+      const blend = smoothstep(this.wristS - 0.004, this.wristS + 0.03, s);
+      const hx = p[0] + frame.lateral[0] * t;
+      const hz = p[2] + frame.lateral[2] * t;
+      const handBase: Vec3 = [hx, palmDorsalY(hx, hz), hz];
+      const handNormal = palmDorsalNormal(hx, hz);
+      const r = forearmRadii(p[0]);
+      const theta = clamp(t / Math.max(0.012, r.z), -0.95, 0.95);
+      const foreBase: Vec3 = [p[0], r.y * Math.sin(theta), r.z * Math.cos(theta)];
+      const foreNormal = normalize3([0, Math.sin(theta) / r.y, Math.cos(theta) / r.z]);
+      const base: Vec3 = [
+        handBase[0] + (foreBase[0] - handBase[0]) * blend,
+        handBase[1] + (foreBase[1] - handBase[1]) * blend,
+        handBase[2] + (foreBase[2] - handBase[2]) * blend,
+      ];
+      const normal = normalize3([
+        handNormal[0] + (foreNormal[0] - handNormal[0]) * blend,
+        handNormal[1] + (foreNormal[1] - handNormal[1]) * blend,
+        handNormal[2] + (foreNormal[2] - handNormal[2]) * blend,
+      ]);
+      return { base, normal };
     }
     const frame = this.route.curve.frameAt(s);
     const x = frame.position[0] + frame.lateral[0] * t;
     const z = frame.position[2] + frame.lateral[2] * t;
-    const baseY = this.baseAt(x, z);
-    // 抬高 0.12mm，避免与身体基座在接缝处 z-fighting
-    return [x, baseY + this.displacementAt(s, t) + 0.00012, z];
+    return { base: [x, this.baseAt(x, z), z], normal: [0, 1, 0] };
+  }
+
+  private waterOffsetAt(s: number): number {
+    const p = this.paramsAt(s);
+    const ds = s - this.poolS;
+    const poolMix = Math.exp(-((ds / 0.0075) ** 2));
+    return p.waterLevel + (p.poolLevel - p.waterLevel) * poolMix;
   }
 
   displacementAt(s: number, t: number): number {
@@ -195,7 +250,10 @@ export class TerrainField {
     const ds = s - heguS;
 
     // 谷沿经向的包络：合谷最深，向两端收
-    const env = 0.22 + 0.78 * smoothstep(0.05, 0.008, Math.abs(ds));
+    const env =
+      this.surface === 'arm'
+        ? 0.62 + 0.38 * Math.exp(-((ds / 0.16) ** 2))
+        : 0.22 + 0.78 * smoothstep(0.05, 0.008, Math.abs(ds));
     // 谷口在合谷稍近掌指关节一侧收束
     const mouth = 1 + 0.22 * Math.exp(-(((ds - 0.012) / 0.014) ** 2));
 
@@ -292,10 +350,10 @@ export class TerrainField {
 
   /** 水面与地形的交线：返回 (s) 行的左右湿边，t 坐标 */
   wettedSpan(s: number, step = 0.0002): { left: number; right: number } {
-    const level = this.waterYAt(s);
+    const level = this.waterOffsetAt(s);
     let left = 0;
     for (let t = -step; t >= this.domain.tMin; t -= step) {
-      if (this.pointAt(s, t)[1] > level) {
+      if (this.displacementAt(s, t) > level) {
         left = t + step;
         break;
       }
@@ -303,7 +361,7 @@ export class TerrainField {
     }
     let right = 0;
     for (let t = step; t <= this.domain.tMax; t += step) {
-      if (this.pointAt(s, t)[1] > level) {
+      if (this.displacementAt(s, t) > level) {
         right = t - step;
         break;
       }
@@ -312,8 +370,8 @@ export class TerrainField {
     return { left, right };
   }
 
-  wetAt(s: number, t: number, y: number): number {
-    return 1 - smoothstep(0.00005, 0.0014, y - this.waterYAt(s));
+  wetAt(s: number, t: number, _y: number): number {
+    return 1 - smoothstep(0.00005, 0.0014, this.displacementAt(s, t) - this.waterOffsetAt(s));
   }
 
   private flowAtCached(s: number): FlowStage {
@@ -400,4 +458,9 @@ export function corridorSeed(seed: number, code: string): number {
 
 export function makeRng(seed: number): () => number {
   return mulberry32(seed);
+}
+
+function normalize3(v: Vec3): Vec3 {
+  const l = Math.hypot(v[0], v[1], v[2]) || 1;
+  return [v[0] / l, v[1] / l, v[2] / l];
 }

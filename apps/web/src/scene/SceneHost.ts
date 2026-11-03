@@ -3,6 +3,7 @@ import { buildRoute, type Meridian, type Route } from '@inner/core';
 import {
   M0_CODES,
   TerrainField,
+  WindowTracker,
   buildCorridor,
   type ArchetypeChoice,
   type CorridorMeshData,
@@ -10,6 +11,7 @@ import {
 import { CorridorService } from './corridorService.js';
 import {
   CameraRig,
+  createArmLineView,
   createBodyAnchorView,
   createBodyView,
   createMarkerView,
@@ -18,6 +20,7 @@ import {
   createQiView,
   createTerrainView,
   createWaterView,
+  type ArmLineView,
   type BodyAnchorView,
   type BodyView,
   type MarkerView,
@@ -29,21 +32,12 @@ import {
   type WaterView,
 } from '@inner/render';
 
-export type SegmentId = 'hand' | 'forearm';
+export const TOUR_CODES = [
+  'LI3', 'LI4', 'LI5', 'LI6', 'LI7', 'LI8', 'LI9', 'LI10', 'LI11',
+] as const;
 
-export const SEGMENT_TOUR: Record<SegmentId, readonly string[]> = {
-  hand: ['LI3', 'LI4', 'LI5'],
-  forearm: ['LI6', 'LI7', 'LI8', 'LI9', 'LI10', 'LI11'],
-};
-
-const SEGMENT_CODES: Record<SegmentId, readonly string[]> = {
-  hand: M0_CODES,
-  forearm: ['LI6', 'LI7', 'LI8', 'LI9', 'LI10', 'LI11'],
-};
-
-const SEGMENT_START: Record<SegmentId, string> = { hand: 'LI3', forearm: 'LI6' };
-const SEGMENT_END: Record<SegmentId, string> = { hand: 'LI5', forearm: 'LI11' };
-const SEGMENT_FOCUS: Record<SegmentId, string> = { hand: 'LI4', forearm: 'LI11' };
+const CODES = TOUR_CODES;
+const WINDOW_HALF = 0.035;
 
 export interface SceneParams {
   valleyDepth: number;
@@ -66,7 +60,6 @@ export interface SceneVisibility {
 
 export interface SceneHostOptions {
   meridian: Meridian;
-  segment?: SegmentId;
   mode: ViewMode;
   params: SceneParams;
   visibility: SceneVisibility;
@@ -117,8 +110,10 @@ export class SceneHost {
 
   private readonly route: Route;
   private readonly field: TerrainField;
+  private readonly fullField: TerrainField;
+  private readonly windowTracker: WindowTracker;
+  private readonly armLine: ArmLineView;
   private readonly codes: readonly string[];
-  private readonly segment: SegmentId;
   private corridor: CorridorMeshData | null = null;
   private layers: Layers | null = null;
   private params: SceneParams;
@@ -137,8 +132,7 @@ export class SceneHost {
   constructor(container: HTMLElement, options: SceneHostOptions) {
     this.container = container;
     this.meridian = options.meridian;
-    this.segment = options.segment ?? 'hand';
-    this.codes = SEGMENT_CODES[this.segment];
+    this.codes = CODES;
     this.params = { ...options.params };
     this.visibility = { ...options.visibility };
     this.mode = options.mode;
@@ -149,8 +143,16 @@ export class SceneHost {
     this.onTourArrive = options.onTourArrive;
 
     this.route = buildRoute(this.meridian, this.codes);
-    this.field = new TerrainField(this.route, this.buildOptions());
-    this.activeCode = SEGMENT_FOCUS[this.segment];
+    this.fullField = new TerrainField(this.route, this.fullOptions());
+    this.field = this.fullField;
+    this.windowTracker = new WindowTracker(
+      this.route.stopAt('LI4').s,
+      this.route.curve.length,
+      WINDOW_HALF,
+      0.005,
+      0.012,
+    );
+    this.activeCode = 'LI4';
 
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -171,6 +173,8 @@ export class SceneHost {
       new THREE.Color(this.field.palette.fog),
       this.params.fogDensity,
     );
+    this.armLine = createArmLineView(this.route, this.field.palette.glow);
+    this.scene.add(this.armLine.group);
 
     const width = Math.max(1, container.clientWidth);
     const height = Math.max(1, container.clientHeight);
@@ -206,13 +210,18 @@ export class SceneHost {
     (window as unknown as { __SCENE__?: SceneHost }).__SCENE__ = this;
   }
 
-  private buildOptions() {
-    const start = this.route.stopAt(SEGMENT_START[this.segment]);
-    const end = this.route.stopAt(SEGMENT_END[this.segment]);
-    const focus = this.route.stopAt(SEGMENT_FOCUS[this.segment]);
-    const autoCodes =
-      this.segment === 'hand' ? (['LI3', 'LI4', 'LI5'] as const) : (['LI6', 'LI8', 'LI11'] as const);
-    const auto = autoCodes.map((code) => this.route.stopAt(code).s) as [number, number, number];
+  private fullOptions() {
+    return this.segmentOptions(
+      Math.max(0, this.route.stopAt('LI3').s - 0.004),
+      Math.min(this.route.curve.length, this.route.stopAt('LI11').s + 0.006),
+    );
+  }
+
+  private windowOptions(window: { s0: number; s1: number }) {
+    return this.segmentOptions(window.s0, window.s1);
+  }
+
+  private segmentOptions(s0: number, s1: number) {
     return {
       valleyDepth: this.params.valleyDepth,
       riverWidth: this.params.riverWidth,
@@ -220,21 +229,26 @@ export class SceneHost {
       archetype: this.params.archetype,
       tide: 0.55,
       segment: {
-        surface: this.segment,
-        s0: Math.max(0, start.s - 0.004),
-        s1: Math.min(this.route.curve.length, end.s + 0.006),
-        focusS: focus.s,
-        autoS: auto,
-        tMin: this.segment === 'hand' ? -0.0125 : -0.012,
-        tMax: this.segment === 'hand' ? 0.0245 : 0.012,
-        ridgeOffset: this.segment === 'hand' ? 0.0078 : 0.0065,
+        surface: 'arm' as const,
+        s0,
+        s1,
+        focusS: this.route.stopAt('LI4').s,
+        autoS: [
+          this.route.stopAt('LI3').s,
+          this.route.stopAt('LI6').s,
+          this.route.stopAt('LI11').s,
+        ] as [number, number, number],
+        tMin: -0.0125,
+        tMax: 0.018,
+        ridgeOffset: 0.0078,
       },
     };
   }
 
   private async loadInitial(): Promise<void> {
-    const field = this.field;
-    const options = this.buildOptions();
+    const window = this.windowTracker.current;
+    const options = this.windowOptions(window);
+    const field = new TerrainField(this.route, options);
     try {
       const data = await this.corridorService.build(this.meridian, this.codes, options);
       if (this.disposed) return;
@@ -273,10 +287,6 @@ export class SceneHost {
       spanUlnar: 0.0205,
       spanRadial: 0.0105,
     });
-    if (this.segment === 'forearm') {
-      body.group.rotation.x = -Math.PI / 2;
-      anchors.group.rotation.x = -Math.PI / 2;
-    }
 
     terrain.setFogDensity(this.params.fogDensity);
     water.setFogDensity(this.params.fogDensity);
@@ -403,10 +413,12 @@ export class SceneHost {
       this.layers.body.setEmphasis(true);
       this.layers.anchors.group.visible = true;
       this.layers.anchors.setActive(this.activeCode);
+      this.armLine.group.visible = false;
       return;
     }
     this.layers.body.setEmphasis(false);
     this.layers.anchors.group.visible = false;
+    this.armLine.group.visible = true;
     this.layers.terrain.group.visible = this.visibility.terrain;
     this.layers.terrain.setInk(this.visibility.ink);
     this.layers.water.group.visible = this.visibility.water;
@@ -418,11 +430,13 @@ export class SceneHost {
 
   private rebuildTerrain(): void {
     this.pendingRebuild = false;
-    const options = this.buildOptions();
-    // field 很便宜，主线程先建好；网格由 Worker/缓存生成，期间保留旧画面
+    this.rebuildWindow(this.windowTracker.current);
+  }
+
+  private rebuildWindow(window: { s0: number; s1: number }): void {
+    const options = this.windowOptions(window);
     const field = new TerrainField(this.route, options);
     const token = ++this.rebuildToken;
-
     this.corridorService
       .build(this.meridian, this.codes, options)
       .then((data) => {
@@ -430,7 +444,7 @@ export class SceneHost {
         this.swapCorridor({ field, ...data });
       })
       .catch((error) => {
-        console.error('走廊异步生成失败，回退主线程', error);
+        console.error('走廊窗口异步生成失败，回退主线程', error);
         if (this.disposed || token !== this.rebuildToken) return;
         this.swapCorridor(buildCorridor(this.route, options));
       });
@@ -475,8 +489,6 @@ export class SceneHost {
       };
     }
 
-    this.heguVec.set(corridor.hegu[0], corridor.hegu[1], corridor.hegu[2]);
-    this.rig.setField(corridor.field, this.heguVec);
     this.applyVisibility();
   }
 
@@ -508,6 +520,10 @@ export class SceneHost {
     const time = now / 1000;
 
     this.rig.update(dt, time);
+    const focusS = this.rig.getFocusS();
+    this.armLine.setFocus(focusS);
+    const nextWindow = this.windowTracker.update(focusS, this.route.curve.length);
+    if (nextWindow) this.rebuildWindow(nextWindow);
 
     const layers = this.layers;
     if (layers && this.corridor) {
@@ -648,6 +664,7 @@ export class SceneHost {
     cancelAnimationFrame(this.raf);
     this.resizeObserver.disconnect();
     this.rig.dispose();
+    this.armLine.dispose();
     this.disposeLayers();
     this.renderer.dispose();
     this.renderer.domElement.remove();

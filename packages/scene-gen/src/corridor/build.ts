@@ -133,7 +133,10 @@ export function buildCorridorData(
 
   const terrain: MeshData = { positions, normals, uvs, indices };
   const river = buildRiver(field, sValues[0]!, sValues[sValues.length - 1]!);
-  const pool = buildPool(field);
+  const pool =
+    field.domain.s0 <= field.heguS && field.heguS <= field.domain.s1
+      ? buildPool(field)
+      : emptyMesh();
 
   return {
     rows,
@@ -254,8 +257,6 @@ function buildRiver(field: TerrainField, s0: number, s1: number): MeshData {
 
   for (let r = 0; r < rows; r++) {
     const s = start + ((end - start) * r) / (rows - 1);
-    const level = field.waterYAt(s);
-    const dy = 0.00004 * Math.sin(s * 900);
     const span = field.wettedSpan(s);
     // 走廊端头地形会摊平，湿边可能突然变宽；夹住并收口，避免出现悬空水膜
     const taper =
@@ -265,14 +266,15 @@ function buildRiver(field: TerrainField, s0: number, s1: number): MeshData {
     const right = Math.min(span.right, maxHalf) * taper;
     for (let c = 0; c < cols; c++) {
       const t = left + ((right - left) * c) / (cols - 1);
-      const p = field.pointAt(s, t);
+      const p = field.waterPointAt(s, t);
+      const n = field.normalAt(s, t);
       const i = r * cols + c;
       positions[i * 3] = p[0];
-      positions[i * 3 + 1] = level + dy;
+      positions[i * 3 + 1] = p[1];
       positions[i * 3 + 2] = p[2];
-      normals[i * 3] = 0;
-      normals[i * 3 + 1] = 1;
-      normals[i * 3 + 2] = 0;
+      normals[i * 3] = n[0];
+      normals[i * 3 + 1] = n[1];
+      normals[i * 3 + 2] = n[2];
       uvs[i * 2] = r / (rows - 1);
       uvs[i * 2 + 1] = c / (cols - 1);
     }
@@ -286,7 +288,6 @@ function buildPool(field: TerrainField): MeshData {
   const segments = 48;
   const rs = 0.0058;
   const rt = 0.0038;
-  const level = field.poolWaterY();
   const positions: number[] = [];
   const uvs: number[] = [];
   const normals: number[] = [];
@@ -294,7 +295,7 @@ function buildPool(field: TerrainField): MeshData {
   positions.push(0, 0, 0);
   uvs.push(0.5, 0.5);
   normals.push(0, 1, 0);
-  const center = field.pointAt(field.heguS, 0);
+  const center = field.waterPointAt(field.heguS, 0);
 
   for (let ring = 1; ring <= rings; ring++) {
     const rr = ring / rings;
@@ -302,10 +303,11 @@ function buildPool(field: TerrainField): MeshData {
       const a = (seg / segments) * Math.PI * 2;
       const s = field.heguS + Math.cos(a) * rs * rr;
       const t = Math.sin(a) * rt * rr;
-      const p = field.pointAt(s, t);
-      positions.push(p[0], level, p[2]);
+      const p = field.waterPointAt(s, t);
+      const n = field.normalAt(s, t);
+      positions.push(p[0], p[1], p[2]);
       uvs.push(0.5 + 0.5 * Math.cos(a) * rr, 0.5 + 0.5 * Math.sin(a) * rr);
-      normals.push(0, 1, 0);
+      normals.push(n[0], n[1], n[2]);
     }
   }
 
@@ -324,9 +326,8 @@ function buildPool(field: TerrainField): MeshData {
     }
   }
 
-  // 让中心点落在合谷正上方（x/z），y 保持潭面高度
   positions[0] = center[0];
-  positions[1] = level;
+  positions[1] = center[1];
   positions[2] = center[2];
 
   return {
@@ -352,4 +353,13 @@ function cross(a: Vec3, b: Vec3): Vec3 {
 function normalize(a: Vec3): Vec3 {
   const l = Math.hypot(a[0], a[1], a[2]) || 1;
   return [a[0] / l, a[1] / l, a[2] / l];
+}
+
+function emptyMesh(): MeshData {
+  return {
+    positions: new Float32Array(),
+    normals: new Float32Array(),
+    uvs: new Float32Array(),
+    indices: new Uint32Array(),
+  };
 }

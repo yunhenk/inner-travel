@@ -143,6 +143,8 @@ export class CameraRig {
   private applyMode(mode: ViewMode): void {
     this.controls.enabled = mode !== 'fly';
     this.controls.autoRotate = false;
+    const n = this.field.normalAt(this.field.heguS, 0);
+    this.camera.up.set(n[0], n[1], n[2]);
 
     if (mode === 'observe') {
       if (this.field.surface === 'forearm') {
@@ -183,6 +185,7 @@ export class CameraRig {
 
   private applyOverview(): void {
     this.controls.enabled = false;
+    this.camera.up.set(0, 1, 0);
     this.camera.position.set(0.34, 0.3, 0.62);
     this.controls.target.set(-0.17, 0.08, 0.015);
     this.camera.lookAt(this.controls.target);
@@ -224,22 +227,21 @@ export class CameraRig {
     );
 
     const bob = Math.sin(elapsed * 0.55) * 0.0006;
-    const targetPos =
-      this.field.surface === 'forearm'
-        ? new THREE.Vector3(p[0], p[1] + 0.009, p[2] + 0.011)
-        : new THREE.Vector3(
-            p[0],
-            p[1] + (this.reducedMotion ? 0.006 : 0.0058 + bob),
-            p[2],
-          );
-
+    const normal = this.field.normalAt(this.s, 0);
+    const lift = this.reducedMotion ? 0.006 : 0.0058 + bob;
+    const targetPos = new THREE.Vector3(
+      p[0] + normal[0] * lift,
+      p[1] + normal[1] * lift,
+      p[2] + normal[2] * lift,
+    );
     const lookTarget = new THREE.Vector3(
-      ahead[0],
-      ahead[1] + 0.0012,
-      ahead[2],
+      ahead[0] + normal[0] * 0.0012,
+      ahead[1] + normal[1] * 0.0012,
+      ahead[2] + normal[2] * 0.0012,
     );
     this.tmpTarget.copy(lookTarget);
 
+    this.camera.up.lerp(new THREE.Vector3(normal[0], normal[1], normal[2]), 1 - Math.exp(-dt * 4)).normalize();
     if (!this.initializedFly) {
       this.camera.position.copy(targetPos);
       this.initializedFly = true;
@@ -248,9 +250,8 @@ export class CameraRig {
       this.camera.position.lerp(targetPos, k);
       this.controls.target.lerp(this.tmpTarget, k);
     }
-    // 平滑 lookAt，避免曲线切向抖动直接传给相机
     const look = this.controls.target.clone().sub(this.camera.position).normalize();
-    const desiredQuat = quatFromLook(look);
+    const desiredQuat = quatFromLook(look, this.camera.up);
     this.camera.quaternion.slerp(desiredQuat, 1 - Math.exp(-dt * 6));
     this.controls.target.copy(this.tmpTarget);
   }
@@ -264,8 +265,8 @@ const Y_AXIS = new THREE.Vector3(0, 1, 0);
 const lookMatrix = new THREE.Matrix4();
 const lookQuat = new THREE.Quaternion();
 
-function quatFromLook(direction: THREE.Vector3): THREE.Quaternion {
-  lookMatrix.lookAt(new THREE.Vector3(0, 0, 0), direction, Y_AXIS);
+function quatFromLook(direction: THREE.Vector3, up: THREE.Vector3): THREE.Quaternion {
+  lookMatrix.lookAt(new THREE.Vector3(0, 0, 0), direction, up);
   return lookQuat.setFromRotationMatrix(lookMatrix).clone();
 }
 

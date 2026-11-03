@@ -5,6 +5,7 @@ export * from './water/WaterView.js';
 export * from './body/bodyBase.js';
 export * from './body/BodyAnchors.js';
 export * from './markers/MeridianMarkers.js';
+export * from './markers/ArmLine.js';
 export * from './mist/MistView.js';
 export * from './camera/CameraRig.js';
 export * from './qi/QiView.js';

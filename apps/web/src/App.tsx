@@ -5,7 +5,7 @@ import type { ViewMode } from '@inner/render';
 import { ARCHETYPE_OPTIONS, type ArchetypeChoice } from '@inner/scene-gen';
 import { tourMachine, type TourStateName } from './journey/tourMachine.js';
 import meridianJson from '../../../content/meridians/hand-yangming-large-intestine.json';
-import { SEGMENT_TOUR, SceneHost, type SegmentId } from './scene/SceneHost.js';
+import { TOUR_CODES, SceneHost } from './scene/SceneHost.js';
 import type { SceneParams, SceneVisibility } from './scene/SceneHost.js';
 import { Panel } from './ui/Panel.js';
 
@@ -59,12 +59,7 @@ function parseNumber(value: string | null, fallback: number): number {
 export function App() {
   const query = useMemo(() => new URLSearchParams(window.location.search), []);
   const meridian = useMemo(() => parseMeridian(meridianJson), []);
-  const [segment, setSegment] = useState<SegmentId>(() =>
-    query.get('segment') === 'forearm' ? 'forearm' : 'hand',
-  );
-  const [activeCode, setActiveCode] = useState(() =>
-    segment === 'forearm' ? 'LI11' : 'LI4',
-  );
+  const [activeCode, setActiveCode] = useState('LI4');
   const master = useMemo(() => findPoint(meridian, activeCode), [meridian, activeCode]);
   const hideUi = query.get('ui') === '0';
 
@@ -72,8 +67,8 @@ export function App() {
   const tourState = tourSnapshot.value as TourStateName;
   const tourIndex = tourSnapshot.context.index;
   const tourStops = useMemo(
-    () => SEGMENT_TOUR[segment].map((code) => findPoint(meridian, code)),
-    [meridian, segment],
+    () => TOUR_CODES.map((code) => findPoint(meridian, code)),
+    [meridian],
   );
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -110,7 +105,6 @@ export function App() {
     try {
       host = new SceneHost(container, {
         meridian,
-        segment,
         mode,
         params,
         visibility,
@@ -133,9 +127,9 @@ export function App() {
       host?.dispose();
       hostRef.current = null;
     };
-    // 场景按经脉/经段创建，其余通过 setter 更新
+    // 场景按经脉创建，其余通过 setter 更新
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [meridian, segment]);
+  }, [meridian]);
 
   useEffect(() => {
     hostRef.current?.setMode(mode);
@@ -167,21 +161,11 @@ export function App() {
 
   useEffect(() => {
     if (tourState === 'moving') {
-      hostRef.current?.goToStop(SEGMENT_TOUR[segment][tourIndex]!);
+      hostRef.current?.goToStop(TOUR_CODES[tourIndex]!);
     }
-  }, [tourState, tourIndex, segment]);
+  }, [tourState, tourIndex]);
 
-  useEffect(() => {
-    setActiveCode(segment === 'forearm' ? 'LI11' : 'LI4');
-    setReady(false);
-    setTriangles(0);
-    sendTour({ type: 'STOP' });
-  }, [segment, sendTour]);
 
-  const handleSegment = useCallback((next: SegmentId) => {
-    setOverview(false);
-    setSegment(next);
-  }, []);
 
   const handleMode = useCallback(
     (next: ViewMode) => {
@@ -205,7 +189,7 @@ export function App() {
     setOverview(false);
     setMode('fly');
     hostRef.current?.startTour();
-    sendTour({ type: 'START', total: SEGMENT_TOUR[segment].length });
+    sendTour({ type: 'START', total: TOUR_CODES.length });
   }, [sendTour, tourState]);
 
   const handleTourSelect = useCallback(
@@ -215,9 +199,9 @@ export function App() {
         setMode('fly');
         hostRef.current?.startTour();
       }
-      sendTour({ type: 'SELECT', index, total: SEGMENT_TOUR[segment].length });
+      sendTour({ type: 'SELECT', index, total: TOUR_CODES.length });
     },
-    [sendTour, tourState, segment],
+    [sendTour, tourState],
   );
 
   useEffect(() => {
@@ -252,7 +236,7 @@ export function App() {
               <h1>游脉山河</h1>
               <p>
                 Meridian Drift <span className="dot">·</span>{' '}
-                {segment === 'forearm' ? '前臂' : '合谷'}
+                合谷
               </p>
             </div>
             <span className="stage-pill">M0</span>
@@ -268,8 +252,6 @@ export function App() {
             tourState={tourState}
             tourIndex={tourIndex}
             tourStops={tourStops}
-            segment={segment}
-            onSegment={handleSegment}
             onMode={handleMode}
             onTourStart={handleTourStart}
             onTourSelect={handleTourSelect}

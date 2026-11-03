@@ -33,24 +33,24 @@ export function buildQiPath(field: TerrainField, options: QiPathOptions = {}): Q
   const { s0, s1, heguS } = field.domain;
 
   const positions: Vec3[] = [];
+  const normals: Vec3[] = [];
   for (let i = 0; i < width; i++) {
     const s = s0 + ((s1 - s0) * i) / (width - 1);
     const p = field.pointAt(s, 0);
-    positions.push([p[0], p[1] + lift, p[2]]);
+    const n = field.normalAt(s, 0);
+    positions.push([p[0] + n[0] * lift, p[1] + n[1] * lift, p[2] + n[2] * lift]);
+    normals.push(n);
   }
 
   const data = new Float32Array(width * 4 * 4);
-  const up: Vec3 = [0, 1, 0];
 
   for (let i = 0; i < width; i++) {
     const prev = positions[Math.max(0, i - 1)]!;
     const next = positions[Math.min(width - 1, i + 1)]!;
     const tangent = normalize(sub(next, prev));
-    const normal = normalize([
-      up[0] - tangent[0] * tangent[1],
-      up[1] - tangent[1] * tangent[1],
-      up[2] - tangent[2] * tangent[1],
-    ]);
+    const n = normals[i]!;
+    const dn = n[0] * tangent[0] + n[1] * tangent[1] + n[2] * tangent[2];
+    const normal = normalize([n[0] - tangent[0] * dn, n[1] - tangent[1] * dn, n[2] - tangent[2] * dn]);
     const binormal = normalize(cross(tangent, normal));
     const p = positions[i]!;
 
@@ -66,6 +66,6 @@ export function buildQiPath(field: TerrainField, options: QiPathOptions = {}): Q
     data,
     s0,
     s1,
-    poolU: (heguS - s0) / Math.max(1e-9, s1 - s0),
+    poolU: Math.min(1, Math.max(0, (heguS - s0) / Math.max(1e-9, s1 - s0))),
   };
 }
