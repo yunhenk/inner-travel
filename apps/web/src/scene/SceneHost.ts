@@ -39,6 +39,7 @@ export interface SceneVisibility {
   terrain: boolean;
   water: boolean;
   body: boolean;
+  ink: boolean;
   qi: boolean;
   mist: boolean;
   markers: boolean;
@@ -323,6 +324,7 @@ export class SceneHost {
   private applyVisibility(): void {
     if (!this.layers) return;
     this.layers.terrain.group.visible = this.visibility.terrain;
+    this.layers.terrain.setInk(this.visibility.ink);
     this.layers.water.group.visible = this.visibility.water;
     this.layers.body.group.visible = this.visibility.body && this.mode === 'observe';
     this.layers.qi.group.visible = this.visibility.qi;

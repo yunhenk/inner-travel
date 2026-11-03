@@ -39,6 +39,7 @@ const DEFAULT_VISIBILITY: SceneVisibility = {
   terrain: true,
   water: true,
   body: false,
+  ink: true,
   qi: true,
   mist: true,
   markers: true,

@@ -124,7 +124,7 @@ SceneHost 构造
 
 - 首屏异步化 + 缓存预热（打开上次的 seed/原型）；
 - Worker 进度事件与骨架过渡；
-- DOF / Ink 后处理；
+- 真正的屏幕空间 DOF/墨线（需 depth/normal + 标签 overlay），地形墨洗已见 [10](10-M1-地形墨洗与纸感.md)；
 - GLB 手部与 20 穴。
 
 ---

@@ -42,6 +42,7 @@ const fragmentShader = /* glsl */ `
   uniform vec3 uSunDir;
   uniform float uFogDensity;
   uniform float uInkStrength;
+  uniform float uInkBoost;
   uniform float uTime;
   uniform float uWaterY;
   uniform vec3 uSkin;
@@ -83,6 +84,7 @@ const fragmentShader = /* glsl */ `
 
   void main() {
     vec3 n = normalize(vNormalW);
+    vec3 viewDir = normalize(cameraPosition - vWorld);
 
     // 高频法线扰动：让岩面在微距下有颗粒与擦痕
     float e = 0.00016;
@@ -113,8 +115,17 @@ const fragmentShader = /* glsl */ `
     // 边缘化入皮肤（双象过渡）
     col = mix(col, uSkin, smoothstep(0.55, 0.97, vEdge));
 
-    // 积墨
-    col = mix(col, uInk, uInkStrength * smoothstep(0.04, 0.7, vConcavity) * 0.62);
+    // 积墨 + 山脊/陡坡的淡墨线
+    float rim = pow(1.0 - clamp(dot(n, viewDir), 0.0, 1.0), 3.0);
+    float hatch =
+      smoothstep(0.58, 0.92, slope) *
+      smoothstep(0.42, 0.78, fbm(vWorld.xz * 520.0 + vWorld.y * 700.0));
+    col = mix(col, uInk, uInkBoost * (rim * 0.2 + hatch * 0.14));
+    col = mix(
+      col,
+      uInk,
+      uInkBoost * uInkStrength * smoothstep(0.04, 0.7, vConcavity) * 0.62
+    );
     col *= 1.0 - 0.2 * smoothstep(0.35, 1.0, vConcavity);
 
     vec3 L = normalize(uSunDir);
@@ -122,10 +133,13 @@ const fragmentShader = /* glsl */ `
     float hemi = 0.45 + 0.55 * clamp(n.y, 0.0, 1.0);
     vec3 lit = col * (vec3(0.3, 0.33, 0.37) * hemi + uSunColor * ndl * 1.32);
 
-    vec3 viewDir = normalize(cameraPosition - vWorld);
     vec3 halfDir = normalize(L + viewDir);
     float spec = pow(max(dot(n, halfDir), 0.0), 42.0) * smoothstep(0.15, 1.0, vWet);
     lit += uSunColor * spec * 0.06;
+
+    // 纸纹（只作用于地形，不碰标签与 UI）
+    float paper = hash21(gl_FragCoord.xy * 0.73) - 0.5;
+    lit *= 1.0 + paper * 0.03;
 
     // 谷底薄雾
     float valleyMist = smoothstep(uWaterY + 0.004, uWaterY - 0.0015, vWorld.y) * 0.26;
@@ -155,6 +169,7 @@ export function createTerrainMaterial(options: TerrainMaterialOptions): THREE.Sh
       uSunDir: { value: new THREE.Vector3(-0.45, 0.82, 0.35).normalize() },
       uFogDensity: { value: fogDensity },
       uInkStrength: { value: 0.7 },
+      uInkBoost: { value: 1 },
       uWaterY: { value: 0 },
       uSkin: { value: new THREE.Color('#d9b49c') },
       uTime: { value: 0 },

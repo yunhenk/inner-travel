@@ -178,6 +178,11 @@ export function Panel(props: PanelProps) {
             onChange={(v) => props.onVisibility({ qi: v })}
           />
           <Toggle
+            label="墨"
+            checked={visibility.ink}
+            onChange={(v) => props.onVisibility({ ink: v })}
+          />
+          <Toggle
             label="身体"
             checked={visibility.body}
             onChange={(v) => props.onVisibility({ body: v })}

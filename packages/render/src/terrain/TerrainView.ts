@@ -8,6 +8,7 @@ export interface TerrainView {
   material: THREE.ShaderMaterial;
   dispose(): void;
   setFogDensity(value: number): void;
+  setInk(enabled: boolean): void;
 }
 
 /** 把 scene-gen 的纯数据装配成 three 网格 */
@@ -45,6 +46,10 @@ export function createTerrainView(corridor: CorridorMeshData): TerrainView {
     },
     setFogDensity(value: number) {
       material.uniforms.uFogDensity!.value = value;
+    },
+    setInk(enabled: boolean) {
+      material.uniforms.uInkStrength!.value = enabled ? 0.7 : 0;
+      material.uniforms.uInkBoost!.value = enabled ? 1 : 0;
     },
   };
 }
