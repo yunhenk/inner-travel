@@ -129,6 +129,7 @@ export class SceneHost {
   private rebuildToken = 0;
   private frames = 0;
   private lastStats = 0;
+  private prefetched = false;
 
   constructor(container: HTMLElement, options: SceneHostOptions) {
     this.container = container;
@@ -254,6 +255,7 @@ export class SceneHost {
       const data = await this.corridorService.build(this.meridian, this.codes, options);
       if (this.disposed) return;
       this.swapCorridor({ field, ...data });
+      this.prefetchAllStops();
     } catch (error) {
       console.error('首屏走廊异步生成失败，回退主线程', error);
       if (this.disposed) return;
@@ -492,6 +494,23 @@ export class SceneHost {
 
     this.applyVisibility();
     this.prefetchAdjacent();
+  }
+
+  /** 后台预热 9 个站点窗口，巡游时优先命中缓存 */
+  private prefetchAllStops(): void {
+    if (this.prefetched || this.disposed) return;
+    this.prefetched = true;
+    const stops = [...this.route.stops];
+    let index = 0;
+    const step = () => {
+      if (this.disposed || index >= stops.length) return;
+      const stop = stops[index++]!;
+      const slot = planCorridorWindow(stop.s, this.route.curve.length, WINDOW_HALF, 0.005);
+      const options = this.windowOptions(slot);
+      void this.corridorService.build(this.meridian, this.codes, options).catch(() => undefined);
+      window.setTimeout(step, 180);
+    };
+    window.setTimeout(step, 700);
   }
 
   /** 预生成左右相邻窗口，滑动时尽量命中缓存 */
