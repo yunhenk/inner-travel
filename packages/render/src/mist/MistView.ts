@@ -40,6 +40,11 @@ export function createMistView(field: TerrainField): MistView {
     });
   }
 
+  // 窗口两端的雾帘：用几何 skirt 把切边收进雾里
+  for (const edgeS of [s0 + 0.003, s1 - 0.003]) {
+    group.add(createEdgeCurtain(field, edgeS));
+  }
+
   // 窗口两端各加一片横向雾，遮住 tile 切边
   for (const edgeS of [s0 + 0.004, s1 - 0.004]) {
     const p = field.pointAt(edgeS, 0);
@@ -112,4 +117,54 @@ function makeMistTexture(): THREE.CanvasTexture {
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
+}
+
+function createEdgeCurtain(field: TerrainField, s: number): THREE.Mesh {
+  const segments = 20;
+  const height = 0.02;
+  const positions: number[] = [];
+  const alphas: number[] = [];
+  const indices: number[] = [];
+  for (let i = 0; i <= segments; i++) {
+    const t = field.domain.tMin + ((field.domain.tMax - field.domain.tMin) * i) / segments;
+    const p = field.pointAt(s, t);
+    const n = field.normalAt(s, t);
+    positions.push(p[0], p[1], p[2]);
+    alphas.push(0.42);
+    positions.push(p[0] + n[0] * height, p[1] + n[1] * height, p[2] + n[2] * height);
+    alphas.push(0);
+  }
+  for (let i = 0; i < segments; i++) {
+    const a = i * 2;
+    indices.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('aAlpha', new THREE.Float32BufferAttribute(alphas, 1));
+  geometry.setIndex(indices);
+
+  const material = new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    uniforms: { uColor: { value: new THREE.Color('#ece5d4') } },
+    vertexShader: `
+      attribute float aAlpha;
+      varying float vAlpha;
+      void main() {
+        vAlpha = aAlpha;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 uColor;
+      varying float vAlpha;
+      void main() {
+        gl_FragColor = vec4(uColor, vAlpha);
+      }
+    `,
+  });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.renderOrder = 4;
+  return mesh;
 }
