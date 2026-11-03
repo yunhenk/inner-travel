@@ -14,7 +14,7 @@ interface Pending {
   timer: number;
 }
 
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 2;
 
 /**
  * 地形网格的离线程生成 + IndexedDB 缓存。

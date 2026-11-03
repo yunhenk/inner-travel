@@ -15,6 +15,8 @@ export interface MeshData {
   normals: Float32Array;
   uvs: Float32Array;
   indices: Uint32Array;
+  /** 可选：用于窗口边缘淡出 */
+  alpha?: Float32Array;
 }
 
 export interface WaterData {
@@ -90,6 +92,7 @@ export function buildCorridorData(
   const uvs = new Float32Array(count * 2);
   const wet = new Float32Array(count);
   const edge = new Float32Array(count);
+  const alpha = new Float32Array(count);
   const heights = new Float32Array(count);
 
   let minX = Infinity;
@@ -117,6 +120,9 @@ export function buildCorridorData(
       const edgeT = 1 - smooth01(Math.min(tNorm, 1 - tNorm) / 0.1);
       const edgeS = 1 - smooth01(Math.min(sNorm, 1 - sNorm) / 0.04);
       edge[i] = Math.max(edgeT, edgeS);
+      alpha[i] =
+        smooth01(Math.min(s - s0, s1 - s) / 0.008) *
+        smooth01(Math.min(t - tMin, tMax - t) / 0.0015);
 
       minX = Math.min(minX, p[0]);
       minY = Math.min(minY, p[1]);
@@ -131,7 +137,7 @@ export function buildCorridorData(
   const concavity = computeConcavity(heights, rows, cols);
   const indices = buildIndices(rows, cols);
 
-  const terrain: MeshData = { positions, normals, uvs, indices };
+  const terrain: MeshData = { positions, normals, uvs, indices, alpha };
   const river = buildRiver(field, sValues[0]!, sValues[sValues.length - 1]!);
   const pool =
     field.domain.s0 <= field.heguS && field.heguS <= field.domain.s1

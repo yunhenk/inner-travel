@@ -10,12 +10,14 @@ const vertexShader = /* glsl */ `
   attribute float aWet;
   attribute float aConcavity;
   attribute float aEdge;
+  attribute float aAlpha;
   varying vec3 vWorld;
   varying vec3 vNormalW;
   varying vec2 vUv;
   varying float vWet;
   varying float vConcavity;
   varying float vEdge;
+  varying float vAlpha;
 
   void main() {
     vec4 world = modelMatrix * vec4(position, 1.0);
@@ -25,6 +27,7 @@ const vertexShader = /* glsl */ `
     vWet = aWet;
     vConcavity = aConcavity;
     vEdge = aEdge;
+    vAlpha = aAlpha;
     gl_Position = projectionMatrix * viewMatrix * world;
   }
 `;
@@ -53,6 +56,7 @@ const fragmentShader = /* glsl */ `
   varying float vWet;
   varying float vConcavity;
   varying float vEdge;
+  varying float vAlpha;
 
   float hash21(vec2 p) {
     p = fract(p * vec2(123.34, 456.21));
@@ -149,18 +153,14 @@ const fragmentShader = /* glsl */ `
     fog = clamp(fog + valleyMist * (1.0 - fog), 0.0, 0.94);
     lit = mix(lit, uFog, fog);
 
-    // 窗口边缘 dissolve，避免 tile 切边成为硬直线
-    float edgeFade =
-      smoothstep(0.0, 0.07, vUv.x) * smoothstep(1.0, 0.93, vUv.x);
-    if (edgeFade < 0.999 && hash21(gl_FragCoord.xy) > edgeFade) discard;
-
-    gl_FragColor = vec4(lit, 1.0);
+    gl_FragColor = vec4(lit, vAlpha);
     #include <colorspace_fragment>
   }
 `;
 export function createTerrainMaterial(options: TerrainMaterialOptions): THREE.ShaderMaterial {
   const { palette, fogDensity } = options;
   return new THREE.ShaderMaterial({
+    transparent: true,
     vertexShader,
     fragmentShader,
     uniforms: {

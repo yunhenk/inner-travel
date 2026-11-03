@@ -20,6 +20,12 @@ export function createTerrainView(corridor: CorridorMeshData): TerrainView {
   geometry.setAttribute('aWet', new THREE.BufferAttribute(corridor.wet, 1));
   geometry.setAttribute('aConcavity', new THREE.BufferAttribute(corridor.concavity, 1));
   geometry.setAttribute('aEdge', new THREE.BufferAttribute(corridor.edge, 1));
+  if (corridor.terrain.alpha) {
+    geometry.setAttribute('aAlpha', new THREE.BufferAttribute(corridor.terrain.alpha, 1));
+  } else {
+    const ones = new Float32Array(corridor.terrain.positions.length / 3).fill(1);
+    geometry.setAttribute('aAlpha', new THREE.BufferAttribute(ones, 1));
+  }
   geometry.setIndex(new THREE.BufferAttribute(corridor.terrain.indices, 1));
   geometry.computeBoundingSphere();
   geometry.computeBoundingBox();
