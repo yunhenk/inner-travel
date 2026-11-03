@@ -5,6 +5,7 @@ import {
   TerrainField,
   WindowTracker,
   buildCorridor,
+  planCorridorWindow,
   type ArchetypeChoice,
   type CorridorMeshData,
 } from '@inner/scene-gen';
@@ -490,6 +491,17 @@ export class SceneHost {
     }
 
     this.applyVisibility();
+    this.prefetchAdjacent();
+  }
+
+  /** 预生成左右相邻窗口，滑动时尽量命中缓存 */
+  private prefetchAdjacent(): void {
+    const center = this.windowTracker.current.centerS;
+    for (const delta of [-WINDOW_HALF * 0.9, WINDOW_HALF * 0.9]) {
+      const window = planCorridorWindow(center + delta, this.route.curve.length, WINDOW_HALF, 0.005);
+      const options = this.windowOptions(window);
+      void this.corridorService.build(this.meridian, this.codes, options).catch(() => undefined);
+    }
   }
 
   private resize(): void {
@@ -522,6 +534,7 @@ export class SceneHost {
     this.rig.update(dt, time);
     const focusS = this.rig.getFocusS();
     this.armLine.setFocus(focusS);
+    this.layers?.markers.setFocus(focusS);
     const nextWindow = this.windowTracker.update(focusS, this.route.curve.length);
     if (nextWindow) this.rebuildWindow(nextWindow);
 

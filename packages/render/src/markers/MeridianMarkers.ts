@@ -6,6 +6,7 @@ export interface MarkerView {
   group: THREE.Group;
   setRingsVisible(visible: boolean): void;
   setLabelsVisible(visible: boolean): void;
+  setFocus(focusS: number, radius?: number): void;
   dispose(): void;
 }
 
@@ -18,6 +19,9 @@ export function createMarkerView(route: Route, field: TerrainField): MarkerView 
 
   const labels: THREE.Sprite[] = [];
   const rings: THREE.Mesh[] = [];
+  const entries: Array<{ s: number; ring: THREE.Mesh; label: THREE.Sprite }> = [];
+  let ringsVisible = true;
+  let labelsVisible = true;
   for (const stop of route.stops) {
     const ground = field.pointAt(stop.s, 0);
     const position = new THREE.Vector3(ground[0], ground[1] + 0.0004, ground[2]);
@@ -43,15 +47,25 @@ export function createMarkerView(route: Route, field: TerrainField): MarkerView 
     label.name = `Label-${stop.code}`;
     group.add(label);
     labels.push(label);
+    entries.push({ s: stop.s, ring, label });
   }
 
   return {
     group,
     setRingsVisible(visible: boolean) {
+      ringsVisible = visible;
       for (const ring of rings) ring.visible = visible;
     },
     setLabelsVisible(visible: boolean) {
+      labelsVisible = visible;
       for (const label of labels) label.visible = visible;
+    },
+    setFocus(focusS: number, radius = 0.05) {
+      for (const entry of entries) {
+        const near = Math.abs(entry.s - focusS) <= radius;
+        entry.ring.visible = ringsVisible && near;
+        entry.label.visible = labelsVisible && near;
+      }
     },
     dispose() {
       group.traverse((child) => {
