@@ -65,7 +65,25 @@ build(meridian, codes, options)
 
 ---
 
-## 3. 重建顺序
+## 3. 首屏异步与热启动
+
+M0 的首屏是同步 `buildCorridor`，约 90ms；这次也改成异步：
+
+```text
+SceneHost 构造
+  ├─ 建 route + TerrainField（主线程，便宜）
+  ├─ 建 renderer / camera / rig / 灯光
+  ├─ 启动渲染循环（此时还没有地形）
+  └─ CorridorService.build() → 缓存或 Worker
+        └─ 数据回来 → 建 terrain/water/body/markers/qi/press → onReady
+```
+
+- 加载遮罩由 `onReady` 控制，数据回来并完成首帧后才消失；
+- 主循环在地形未就绪时只渲染纸色背景，不阻塞页面；
+- 初始结果同样写入 IndexedDB，第二次进入可直接命中；
+- 浏览器记住上次选的原型（`localStorage: md:archetype`），所以再次打开时通常正好命中同一份缓存。
+
+## 4. 重建顺序
 
 1. 滑块变化 → `SceneHost.setParams` 标记脏并递增 `rebuildToken`；
 2. 静置 120ms 后在主线程建新的 `TerrainField`；
@@ -76,7 +94,7 @@ build(meridian, codes, options)
 
 ---
 
-## 4. 验证
+## 5. 验证
 
 | 项 | 结果 |
 | --- | --- |
@@ -84,14 +102,16 @@ build(meridian, codes, options)
 | `pnpm test` | 28 项通过（新增「纯数据构建与完整构建一致」） |
 | `pnpm build` | 通过；产出 `scene-gen.worker-*.js`（约 70KB） |
 | 生产子路径 | 用 `/inner-travel/` 构建并静态服务，Worker 正常加载、无 404 |
+| 首屏异步 | `getTriangleCount()` 从 0 变为 50968，onReady 后遮罩消失 |
+| 缓存 | 首次访问写入，IndexedDB 条目随原型切换增长（实测 2–3 条） |
 | 浏览器探针 | `worker: true`，IndexedDB 条目随原型切换增长 |
 | 回退 | Worker 失败时走主线程 `buildCorridor`，功能不丢 |
 
 ---
 
-## 5. 已知取舍
+## 6. 已知取舍
 
-- **首次加载仍是主线程同步构建**（约 90ms）；缓存从第一次参数切换开始生效。异步首屏 / 缓存预热留到下一步。
+- 首次访问仍需等待一次 Worker 生成（约 100ms），期间是空场景 + 加载遮罩；之后命中缓存。
 - 缓存没有容量上限与 LRU 清理；条目是约 1MB 的 TypedArray，长期使用需要加 prune。
 - 缓存 key 含 `CACHE_VERSION` 与 meridian JSON 哈希；改 schema 或内容结构时要手动 bump 版本。
 - Worker 与主线程各建一次 `TerrainField`；这是刻意换来的简单性，field 本身很便宜。
@@ -100,7 +120,7 @@ build(meridian, codes, options)
 
 ---
 
-## 6. 下一步
+## 7. 下一步
 
 - 首屏异步化 + 缓存预热（打开上次的 seed/原型）；
 - Worker 进度事件与骨架过渡；
@@ -109,7 +129,7 @@ build(meridian, codes, options)
 
 ---
 
-## 7. 相关文档
+## 8. 相关文档
 
 - [设计文档](01-设计文档.md)
 - [实现架构](02-实现架构.md)

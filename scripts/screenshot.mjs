@@ -55,16 +55,16 @@ const pressScript = `(() => {
 })()`;
 
 const shots = [
-  ['observe', '?mode=observe&labels=1'],
-  ['fly', '?mode=fly'],
-  ['dwell', '?mode=dwell'],
-  ['tour', '?mode=observe&labels=1', "document.querySelector('.tour-start').click()", 3200],
+  ['observe', '?mode=observe&labels=1&archetype=auto'],
+  ['fly', '?mode=fly&archetype=auto'],
+  ['dwell', '?mode=dwell&archetype=auto'],
+  ['tour', '?mode=observe&labels=1&archetype=auto', "document.querySelector('.tour-start').click()", 3200],
   ['archetype-stream', '?mode=observe&labels=1&archetype=stream'],
   ['archetype-gorge', '?mode=observe&labels=1&archetype=gorge'],
   ['archetype-pool', '?mode=observe&labels=1&archetype=pool'],
-  ['press', '?mode=observe&labels=1', pressScript],
-  ['body-context', '?mode=observe&body=1&labels=1'],
-  ['clean-fly', '?mode=fly&ui=0'],
+  ['press', '?mode=observe&labels=1&archetype=auto', pressScript],
+  ['body-context', '?mode=observe&body=1&labels=1&archetype=auto'],
+  ['clean-fly', '?mode=fly&ui=0&archetype=auto'],
 ];
 
 try {

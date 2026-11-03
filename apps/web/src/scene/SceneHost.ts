@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { buildRoute, type Meridian } from '@inner/core';
+import { buildRoute, type Meridian, type Route } from '@inner/core';
 import {
   M0_CODES,
   TerrainField,
@@ -93,8 +93,10 @@ export class SceneHost {
   private lastTime = 0;
   private readonly resizeObserver: ResizeObserver;
 
-  private corridor: CorridorMeshData;
-  private layers: Layers;
+  private readonly route: Route;
+  private readonly field: TerrainField;
+  private corridor: CorridorMeshData | null = null;
+  private layers: Layers | null = null;
   private params: SceneParams;
   private visibility: SceneVisibility;
   private mode: ViewMode;
@@ -120,14 +122,8 @@ export class SceneHost {
     this.onPressChange = options.onPressChange;
     this.onTourArrive = options.onTourArrive;
 
-    const route = buildRoute(this.meridian, M0_CODES);
-    this.corridor = buildCorridor(route, {
-      valleyDepth: this.params.valleyDepth,
-      riverWidth: this.params.riverWidth,
-      relief: this.params.relief,
-      archetype: this.params.archetype,
-      tide: 0.55,
-    });
+    this.route = buildRoute(this.meridian, M0_CODES);
+    this.field = new TerrainField(this.route, this.buildOptions());
 
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -144,8 +140,8 @@ export class SceneHost {
     this.renderer.domElement.setAttribute('role', 'img');
 
     this.scene = new THREE.Scene();
-        this.scene.fog = new THREE.FogExp2(
-      new THREE.Color(this.corridor.field.palette.fog),
+    this.scene.fog = new THREE.FogExp2(
+      new THREE.Color(this.field.palette.fog),
       this.params.fogDensity,
     );
 
@@ -155,22 +151,16 @@ export class SceneHost {
 
     this.setupLights();
 
-    const hegu = new THREE.Vector3(
-      this.corridor.hegu[0],
-      this.corridor.hegu[1],
-      this.corridor.hegu[2],
-    );
-    this.heguVec.set(this.corridor.hegu[0], this.corridor.hegu[1], this.corridor.hegu[2]);
+    const heguPoint = this.field.pointAt(this.field.heguS, 0);
+    const hegu = new THREE.Vector3(heguPoint[0], heguPoint[1], heguPoint[2]);
+    this.heguVec.copy(hegu);
     this.rig = new CameraRig({
       camera: this.camera,
       domElement: this.renderer.domElement,
-      field: this.corridor.field,
+      field: this.field,
       hegu,
       mode: this.mode,
     });
-
-    this.layers = this.createLayers();
-    this.applyVisibility();
 
     this.renderer.domElement.addEventListener('pointerdown', this.onPointerDown);
     this.renderer.domElement.addEventListener('pointermove', this.onPointerMove);
@@ -184,8 +174,33 @@ export class SceneHost {
 
     this.lastTime = performance.now();
     this.raf = requestAnimationFrame(this.loop);
+    void this.loadInitial();
 
     (window as unknown as { __SCENE__?: SceneHost }).__SCENE__ = this;
+  }
+
+  private buildOptions() {
+    return {
+      valleyDepth: this.params.valleyDepth,
+      riverWidth: this.params.riverWidth,
+      relief: this.params.relief,
+      archetype: this.params.archetype,
+      tide: 0.55,
+    };
+  }
+
+  private async loadInitial(): Promise<void> {
+    const field = this.field;
+    const options = this.buildOptions();
+    try {
+      const data = await this.corridorService.build(this.meridian, M0_CODES, options);
+      if (this.disposed) return;
+      this.swapCorridor({ field, ...data });
+    } catch (error) {
+      console.error('首屏走廊异步生成失败，回退主线程', error);
+      if (this.disposed) return;
+      this.swapCorridor(buildCorridor(this.route, options));
+    }
   }
 
   private setupLights(): void {
@@ -201,16 +216,16 @@ export class SceneHost {
     this.scene.add(fill);
   }
 
-  private createLayers(): Layers {
-    const terrain = createTerrainView(this.corridor);
-    const water = createWaterView(this.corridor);
-    const mist = createMistView(this.corridor.field);
-    const markers = createMarkerView(this.corridor.field.route, this.corridor.field);
-    const qi = createQiView(this.corridor.field);
-    const press = createPressView(this.corridor.field.palette.glow);
+  private createLayers(corridor: CorridorMeshData): Layers {
+    const terrain = createTerrainView(corridor);
+    const water = createWaterView(corridor);
+    const mist = createMistView(corridor.field);
+    const markers = createMarkerView(corridor.field.route, corridor.field);
+    const qi = createQiView(corridor.field);
+    const press = createPressView(corridor.field.palette.glow);
     const body = createBodyView({
-      zc0: zCenterAt(this.corridor, -0.006),
-      zc1: zCenterAt(this.corridor, 0.098),
+      zc0: zCenterAt(corridor, -0.006),
+      zc1: zCenterAt(corridor, 0.098),
       spanUlnar: 0.0205,
       spanRadial: 0.0105,
     });
@@ -232,6 +247,7 @@ export class SceneHost {
   }
 
   private disposeLayers(): void {
+    if (!this.layers) return;
     this.scene.remove(
       this.layers.body.group,
       this.layers.terrain.group,
@@ -266,7 +282,7 @@ export class SceneHost {
   }
 
   goToStop(code: string): void {
-    const stop = this.corridor.field.route.stopAt(code);
+    const stop = this.route.stopAt(code);
     const offset = code === 'LI5' ? -0.008 : code === 'LI3' ? 0.004 : 0;
     this.rig.goTo(stop.s + offset);
   }
@@ -295,6 +311,7 @@ export class SceneHost {
    * 普通「游」保持干净画面（除非用户主动打开标签）。
    */
   private updateMarkerVisibility(): void {
+    if (!this.layers) return;
     const showRings =
       this.visibility.markers && (this.mode === 'observe' || this.rig.isTouring());
     const showLabels = this.visibility.labels;
@@ -315,16 +332,9 @@ export class SceneHost {
 
   private rebuildTerrain(): void {
     this.pendingRebuild = false;
-    const route = this.corridor.field.route;
-    const options = {
-      valleyDepth: this.params.valleyDepth,
-      riverWidth: this.params.riverWidth,
-      relief: this.params.relief,
-      archetype: this.params.archetype,
-      tide: 0.55,
-    };
+    const options = this.buildOptions();
     // field 很便宜，主线程先建好；网格由 Worker/缓存生成，期间保留旧画面
-    const field = new TerrainField(route, options);
+    const field = new TerrainField(this.route, options);
     const token = ++this.rebuildToken;
 
     this.corridorService
@@ -336,43 +346,48 @@ export class SceneHost {
       .catch((error) => {
         console.error('走廊异步生成失败，回退主线程', error);
         if (this.disposed || token !== this.rebuildToken) return;
-        this.swapCorridor(buildCorridor(route, options));
+        this.swapCorridor(buildCorridor(this.route, options));
       });
   }
 
   private swapCorridor(corridor: CorridorMeshData): void {
-    this.scene.remove(
-      this.layers.terrain.group,
-      this.layers.water.group,
-      this.layers.mist.group,
-      this.layers.markers.group,
-      this.layers.qi.group,
-    );
-    this.layers.terrain.dispose();
-    this.layers.water.dispose();
-    this.layers.mist.dispose();
-    this.layers.markers.dispose();
-    this.layers.qi.dispose();
+    if (!this.layers) {
+      this.corridor = corridor;
+      this.layers = this.createLayers(corridor);
+    } else {
+      this.scene.remove(
+        this.layers.terrain.group,
+        this.layers.water.group,
+        this.layers.mist.group,
+        this.layers.markers.group,
+        this.layers.qi.group,
+      );
+      this.layers.terrain.dispose();
+      this.layers.water.dispose();
+      this.layers.mist.dispose();
+      this.layers.markers.dispose();
+      this.layers.qi.dispose();
 
-    this.corridor = corridor;
-    const terrain = createTerrainView(corridor);
-    const water = createWaterView(corridor);
-    const mist = createMistView(corridor.field);
-    const markers = createMarkerView(corridor.field.route, corridor.field);
-    const qi = createQiView(corridor.field);
-    terrain.setFogDensity(this.params.fogDensity);
-    water.setFogDensity(this.params.fogDensity);
-    qi.setPixelScale(this.qiPixelScale());
+      this.corridor = corridor;
+      const terrain = createTerrainView(corridor);
+      const water = createWaterView(corridor);
+      const mist = createMistView(corridor.field);
+      const markers = createMarkerView(corridor.field.route, corridor.field);
+      const qi = createQiView(corridor.field);
+      terrain.setFogDensity(this.params.fogDensity);
+      water.setFogDensity(this.params.fogDensity);
+      qi.setPixelScale(this.qiPixelScale());
 
-    this.scene.add(terrain.group, water.group, mist.group, markers.group, qi.group);
-    this.layers = {
-      ...this.layers,
-      terrain,
-      water,
-      mist,
-      markers,
-      qi,
-    };
+      this.scene.add(terrain.group, water.group, mist.group, markers.group, qi.group);
+      this.layers = {
+        ...this.layers,
+        terrain,
+        water,
+        mist,
+        markers,
+        qi,
+      };
+    }
 
     this.heguVec.set(corridor.hegu[0], corridor.hegu[1], corridor.hegu[2]);
     this.rig.setField(corridor.field, this.heguVec);
@@ -386,14 +401,18 @@ export class SceneHost {
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
-    this.layers.qi.setPixelScale(this.qiPixelScale());
+    this.layers?.qi.setPixelScale(this.qiPixelScale());
   }
 
   private loop = (): void => {
     if (this.disposed) return;
     this.raf = requestAnimationFrame(this.loop);
 
-    if (this.pendingRebuild && performance.now() - this.paramsDirtyAt > 120) {
+    if (
+      this.pendingRebuild &&
+      this.corridor &&
+      performance.now() - this.paramsDirtyAt > 120
+    ) {
       this.rebuildTerrain();
     }
 
@@ -403,36 +422,44 @@ export class SceneHost {
     const time = now / 1000;
 
     this.rig.update(dt, time);
-    if (this.rig.consumeTourArrival()) this.onTourArrive?.();
-    const stop = this.corridor.field.route.nearestStop(this.rig.getFocusS());
-    if (stop.code !== this.activeCode) {
-      this.activeCode = stop.code;
-      this.onStopChange?.(stop.code);
+
+    const layers = this.layers;
+    if (layers && this.corridor) {
+      if (this.rig.consumeTourArrival()) this.onTourArrive?.();
+      const stop = this.route.nearestStop(this.rig.getFocusS());
+      if (stop.code !== this.activeCode) {
+        this.activeCode = stop.code;
+        this.onStopChange?.(stop.code);
+      }
+      layers.body.group.visible = this.visibility.body && this.mode === 'observe';
+      this.updateMarkerVisibility();
+      const near = this.camera.position.distanceTo(this.heguVec) < 0.045;
+      layers.mist.group.visible = this.visibility.mist && !near;
+      layers.water.update(time);
+      layers.mist.update(time);
+      const qiOpacity = this.mode === 'fly' ? 0.8 : this.mode === 'dwell' ? 0.62 : 0.42;
+      const pressTarget = this.pressActive ? 1 : 0;
+      this.pressStrength += (pressTarget - this.pressStrength) * (1 - Math.exp(-dt * 7));
+      if (!this.pressActive && this.pressStrength < 0.01) this.pressStrength = 0;
+      const attract = this.pressStrength > 0.01 ? this.pressPoint : null;
+      layers.qi.update(
+        time,
+        0.62,
+        this.visibility.qi ? qiOpacity : 0,
+        attract,
+        this.pressStrength,
+      );
+      layers.water.setRipple(attract, this.pressStrength, time);
+      layers.press.update(attract, this.pressNormal, this.pressStrength, time);
+      layers.terrain.material.uniforms.uTime!.value = time;
     }
-    this.layers.body.group.visible = this.visibility.body && this.mode === 'observe';
-    this.updateMarkerVisibility();
-    const near = this.camera.position.distanceTo(this.heguVec) < 0.045;
-    this.layers.mist.group.visible = this.visibility.mist && !near;
-    this.layers.water.update(time);
-    this.layers.mist.update(time);
-    const qiOpacity = this.mode === 'fly' ? 0.8 : this.mode === 'dwell' ? 0.62 : 0.42;
-    const pressTarget = this.pressActive ? 1 : 0;
-    this.pressStrength += (pressTarget - this.pressStrength) * (1 - Math.exp(-dt * 7));
-    if (!this.pressActive && this.pressStrength < 0.01) this.pressStrength = 0;
-    const attract = this.pressStrength > 0.01 ? this.pressPoint : null;
-    this.layers.qi.update(
-      time,
-      0.62,
-      this.visibility.qi ? qiOpacity : 0,
-      attract,
-      this.pressStrength,
-    );
-    this.layers.water.setRipple(attract, this.pressStrength, time);
-    this.layers.press.update(attract, this.pressNormal, this.pressStrength, time);
-    this.layers.terrain.material.uniforms.uTime!.value = time;
     this.renderer.render(this.scene, this.camera);
 
-    if (!document.documentElement.dataset.sceneReady) {
+    if (
+      this.corridor &&
+      this.layers &&
+      !document.documentElement.dataset.sceneReady
+    ) {
       document.documentElement.dataset.sceneReady = 'true';
       (window as unknown as { __SCENE_READY__?: boolean }).__SCENE_READY__ = true;
       this.onReady?.();
@@ -483,6 +510,7 @@ export class SceneHost {
   }
 
   private beginPress(clientX: number, clientY: number): void {
+    if (!this.layers) return;
     const rect = this.renderer.domElement.getBoundingClientRect();
     this.pointerNdc.set(
       ((clientX - rect.left) / rect.width) * 2 - 1,
@@ -513,6 +541,7 @@ export class SceneHost {
   }
 
   getTriangleCount(): number {
+    if (!this.corridor) return 0;
     const terrain = this.corridor.terrain.indices.length / 3;
     const water =
       this.corridor.water.river.indices.length / 3 + this.corridor.water.pool.indices.length / 3;

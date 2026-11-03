@@ -23,6 +23,18 @@ function parseArchetype(value: string | null): ArchetypeChoice {
     : 'auto';
 }
 
+function storedArchetype(): ArchetypeChoice {
+  try {
+    const value = localStorage.getItem('md:archetype');
+    if (ARCHETYPE_OPTIONS.some((option) => option.id === value)) {
+      return value as ArchetypeChoice;
+    }
+  } catch {
+    // localStorage 不可用时用默认
+  }
+  return 'auto';
+}
+
 const DEFAULT_VISIBILITY: SceneVisibility = {
   terrain: true,
   water: true,
@@ -67,7 +79,9 @@ export function App() {
     riverWidth: parseNumber(query.get('river'), DEFAULT_PARAMS.riverWidth),
     relief: parseNumber(query.get('relief'), DEFAULT_PARAMS.relief),
     fogDensity: parseNumber(query.get('fog'), DEFAULT_PARAMS.fogDensity),
-    archetype: parseArchetype(query.get('archetype')),
+    archetype: query.has('archetype')
+      ? parseArchetype(query.get('archetype'))
+      : storedArchetype(),
   }));
   const [visibility, setVisibility] = useState<SceneVisibility>(() => ({
     ...DEFAULT_VISIBILITY,
@@ -93,7 +107,10 @@ export function App() {
         params,
         visibility,
         onStats: setFps,
-        onReady: () => setReady(true),
+        onReady: () => {
+          setReady(true);
+          setTriangles(hostRef.current?.getTriangleCount() ?? 0);
+        },
         onStopChange: setActiveCode,
         onPressChange: setPressing,
         onTourArrive: () => sendTour({ type: 'ARRIVED' }),
@@ -123,6 +140,14 @@ export function App() {
   useEffect(() => {
     hostRef.current?.setVisibility(visibility);
   }, [visibility]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('md:archetype', params.archetype);
+    } catch {
+      // 忽略隐私模式下的写入失败
+    }
+  }, [params.archetype]);
 
   const handleReset = useCallback(() => {
     hostRef.current?.resetCamera();
