@@ -40,6 +40,30 @@ export function createMistView(field: TerrainField): MistView {
     });
   }
 
+  // 窗口两端各加一片横向雾，遮住 tile 切边
+  for (const edgeS of [s0 + 0.004, s1 - 0.004]) {
+    const p = field.pointAt(edgeS, 0);
+    const n = field.normalAt(edgeS, 0);
+    const material = new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true,
+      opacity: 0.14,
+      depthWrite: false,
+      color: new THREE.Color('#f4efe3'),
+    });
+    const sprite = new THREE.Sprite(material);
+    sprite.scale.set(0.02, 0.006, 1);
+    sprite.position.set(p[0] + n[0] * 0.005, p[1] + n[1] * 0.005, p[2] + n[2] * 0.005);
+    group.add(sprite);
+    sprites.push({
+      sprite,
+      baseX: sprite.position.x,
+      baseY: sprite.position.y,
+      phase: edgeS * 100,
+      drift: 0.0003,
+    });
+  }
+
   // 潭面上额外一片更低的雾
   const pool = field.pointAt(heguS, 0);
   const poolSprite = new THREE.Sprite(
