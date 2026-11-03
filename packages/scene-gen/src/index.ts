@@ -2,6 +2,7 @@ export * from './corridor/archetypes.js';
 export * from './corridor/field.js';
 export * from './corridor/build.js';
 export * from './corridor/window.js';
+export * from './corridor/tiles.js';
 export * from './scene.js';
 export * from './qi/path.js';
 export * from './protocol.js';

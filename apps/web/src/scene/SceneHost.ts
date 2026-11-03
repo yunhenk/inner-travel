@@ -3,6 +3,7 @@ import { buildRoute, type Meridian, type Route } from '@inner/core';
 import {
   M0_CODES,
   TerrainField,
+  TileManager,
   WindowTracker,
   buildCorridor,
   planCorridorWindow,
@@ -113,6 +114,7 @@ export class SceneHost {
   private readonly field: TerrainField;
   private readonly fullField: TerrainField;
   private readonly windowTracker: WindowTracker;
+  private readonly tileManager: TileManager;
   private readonly armLine: ArmLineView;
   private readonly codes: readonly string[];
   private corridor: CorridorMeshData | null = null;
@@ -154,6 +156,7 @@ export class SceneHost {
       0.005,
       0.012,
     );
+    this.tileManager = new TileManager(this.route.curve.length, WINDOW_HALF, 0.005, 12);
     this.activeCode = 'LI4';
 
     this.renderer = new THREE.WebGLRenderer({
@@ -505,9 +508,11 @@ export class SceneHost {
     const step = () => {
       if (this.disposed || index >= stops.length) return;
       const stop = stops[index++]!;
-      const slot = planCorridorWindow(stop.s, this.route.curve.length, WINDOW_HALF, 0.005);
-      const options = this.windowOptions(slot);
-      void this.corridorService.build(this.meridian, this.codes, options).catch(() => undefined);
+      const plan = this.tileManager.focus(stop.s);
+      for (const tile of plan.added) {
+        const options = this.windowOptions(tile);
+        void this.corridorService.build(this.meridian, this.codes, options).catch(() => undefined);
+      }
       window.setTimeout(step, 180);
     };
     window.setTimeout(step, 700);
@@ -516,9 +521,9 @@ export class SceneHost {
   /** 预生成左右相邻窗口，滑动时尽量命中缓存 */
   private prefetchAdjacent(): void {
     const center = this.windowTracker.current.centerS;
-    for (const delta of [-WINDOW_HALF * 0.9, WINDOW_HALF * 0.9]) {
-      const window = planCorridorWindow(center + delta, this.route.curve.length, WINDOW_HALF, 0.005);
-      const options = this.windowOptions(window);
+    const plan = this.tileManager.focus(center);
+    for (const tile of plan.added) {
+      const options = this.windowOptions(tile);
       void this.corridorService.build(this.meridian, this.codes, options).catch(() => undefined);
     }
   }
