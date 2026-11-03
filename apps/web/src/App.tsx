@@ -75,6 +75,7 @@ export function App() {
   const hostRef = useRef<SceneHost | null>(null);
 
   const [mode, setMode] = useState<ViewMode>(() => parseMode(query.get('mode')));
+  const [overview, setOverview] = useState(() => query.get('overview') === '1');
   const [params, setParams] = useState<SceneParams>(() => ({
     valleyDepth: parseNumber(query.get('valley'), DEFAULT_PARAMS.valleyDepth),
     riverWidth: parseNumber(query.get('river'), DEFAULT_PARAMS.riverWidth),
@@ -143,6 +144,10 @@ export function App() {
   }, [visibility]);
 
   useEffect(() => {
+    hostRef.current?.setOverview(overview);
+  }, [overview]);
+
+  useEffect(() => {
     try {
       localStorage.setItem('md:archetype', params.archetype);
     } catch {
@@ -166,6 +171,7 @@ export function App() {
         sendTour({ type: 'STOP' });
         hostRef.current?.stopTour();
       }
+      setOverview(false);
       setMode(next);
     },
     [sendTour, tourState],
@@ -178,6 +184,7 @@ export function App() {
       setMode('observe');
       return;
     }
+    setOverview(false);
     setMode('fly');
     hostRef.current?.startTour();
     sendTour({ type: 'START' });
@@ -186,6 +193,7 @@ export function App() {
   const handleTourSelect = useCallback(
     (index: number) => {
       if (tourState === 'idle' || tourState === 'finished') {
+        setOverview(false);
         setMode('fly');
         hostRef.current?.startTour();
       }
@@ -202,6 +210,7 @@ export function App() {
       if (event.key === '1') handleMode('observe');
       else if (event.key === '2') handleMode('fly');
       else if (event.key === '3') handleMode('dwell');
+      else if (event.key === '4') setOverview((value) => !value);
       else if (event.key.toLowerCase() === 'r') hostRef.current?.resetCamera();
     };
     window.addEventListener('keydown', onKey);
@@ -245,6 +254,8 @@ export function App() {
             onTourSelect={handleTourSelect}
             onParams={(next) => setParams((prev) => ({ ...prev, ...next }))}
             onVisibility={(next) => setVisibility((prev) => ({ ...prev, ...next }))}
+            overview={overview}
+            onOverview={setOverview}
             onReset={handleReset}
           />
 
@@ -256,7 +267,7 @@ export function App() {
           <footer className="hint" aria-hidden="true">
             <span>拖动环视 · 滚轮远近 · 按住地面候气</span>
             <span className="sep">/</span>
-            <span>1 观 · 2 游 · 3 驻 · R 复位</span>
+            <span>1 观 · 2 游 · 3 驻 · 4 身 · R 复位</span>
           </footer>
         </>
       )}

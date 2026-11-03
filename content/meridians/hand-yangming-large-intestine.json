@@ -94,7 +94,7 @@
         "frame": "hand.R",
         "local": [
           0.07,
-          0.012,
+          0.0137,
           0.008
         ],
         "normal": [
@@ -103,7 +103,7 @@
           0.2
         ]
       },
-      "anchorStatus": "placeholder",
+      "anchorStatus": "authored",
       "wushu": {
         "stage": "荥",
         "element": "水"
@@ -336,8 +336,8 @@
         "frame": "forearm.R",
         "local": [
           0.035,
-          0.018,
-          0.01
+          0.016,
+          0.012
         ],
         "normal": [
           0.1,
@@ -345,7 +345,7 @@
           0.3
         ]
       },
-      "anchorStatus": "placeholder",
+      "anchorStatus": "authored",
       "wushu": null,
       "roles": [
         "络"
@@ -393,8 +393,8 @@
         "frame": "forearm.R",
         "local": [
           0.015,
-          0.016,
-          0.01
+          0.018,
+          0.012
         ],
         "normal": [
           0.1,
@@ -402,7 +402,7 @@
           0.3
         ]
       },
-      "anchorStatus": "placeholder",
+      "anchorStatus": "authored",
       "wushu": null,
       "roles": [
         "郄"
@@ -449,9 +449,9 @@
       "anchor": {
         "frame": "forearm.R",
         "local": [
-          -0.01,
-          0.014,
-          0.01
+          0.02,
+          0.018,
+          0.012
         ],
         "normal": [
           0.1,
@@ -459,7 +459,7 @@
           0.4
         ]
       },
-      "anchorStatus": "placeholder",
+      "anchorStatus": "authored",
       "wushu": null,
       "roles": [],
       "image": {
@@ -503,9 +503,9 @@
       "anchor": {
         "frame": "forearm.R",
         "local": [
-          -0.02,
-          0.015,
-          0.01
+          0.008,
+          0.018,
+          0.012
         ],
         "normal": [
           0.1,
@@ -513,7 +513,7 @@
           0.4
         ]
       },
-      "anchorStatus": "placeholder",
+      "anchorStatus": "authored",
       "wushu": null,
       "roles": [],
       "image": {
@@ -557,9 +557,9 @@
       "anchor": {
         "frame": "forearm.R",
         "local": [
-          -0.035,
-          0.014,
-          0.008
+          0.025,
+          0.018,
+          0.012
         ],
         "normal": [
           0.1,
@@ -567,7 +567,7 @@
           0.4
         ]
       },
-      "anchorStatus": "placeholder",
+      "anchorStatus": "authored",
       "wushu": null,
       "roles": [],
       "image": {
@@ -674,11 +674,11 @@
       "order": 12,
       "location": "曲池外上方1寸，肱骨外上髁上缘",
       "anchor": {
-        "frame": "forearm.R",
+        "frame": "upperarm.R",
         "local": [
-          -0.085,
-          0.02,
-          0.0
+          -0.015,
+          0.033,
+          0.015
         ],
         "normal": [
           0.3,
@@ -686,7 +686,7 @@
           0.5
         ]
       },
-      "anchorStatus": "placeholder",
+      "anchorStatus": "authored",
       "wushu": null,
       "roles": [],
       "image": {
@@ -731,9 +731,9 @@
       "anchor": {
         "frame": "upperarm.R",
         "local": [
-          0.015,
-          0.02,
-          0.005
+          -0.055,
+          0.042,
+          0.015
         ],
         "normal": [
           0.2,
@@ -741,7 +741,7 @@
           0.4
         ]
       },
-      "anchorStatus": "placeholder",
+      "anchorStatus": "authored",
       "wushu": null,
       "roles": [],
       "image": {
@@ -786,9 +786,9 @@
       "anchor": {
         "frame": "upperarm.R",
         "local": [
-          0.06,
-          0.025,
-          0.005
+          -0.13,
+          0.055,
+          0.015
         ],
         "normal": [
           0.2,
@@ -796,7 +796,7 @@
           0.5
         ]
       },
-      "anchorStatus": "placeholder",
+      "anchorStatus": "authored",
       "wushu": null,
       "roles": [],
       "image": {
@@ -839,11 +839,11 @@
       "order": 15,
       "location": "肩峰前下方，三角肌上部，肩平举时出现的前方凹陷处",
       "anchor": {
-        "frame": "upperarm.R",
+        "frame": "shoulder.R",
         "local": [
-          0.13,
-          0.03,
-          0.0
+          0.01,
+          0.035,
+          0.02
         ],
         "normal": [
           0.3,
@@ -851,7 +851,7 @@
           0.6
         ]
       },
-      "anchorStatus": "placeholder",
+      "anchorStatus": "authored",
       "wushu": null,
       "roles": [],
       "image": {
@@ -896,9 +896,9 @@
       "anchor": {
         "frame": "shoulder.R",
         "local": [
-          0.01,
-          0.01,
-          0.0
+          0.0,
+          0.035,
+          0.025
         ],
         "normal": [
           0.2,
@@ -906,7 +906,7 @@
           0.3
         ]
       },
-      "anchorStatus": "placeholder",
+      "anchorStatus": "authored",
       "wushu": null,
       "roles": [],
       "image": {
@@ -952,8 +952,8 @@
         "frame": "neck.R",
         "local": [
           0.0,
-          0.02,
-          -0.01
+          0.06,
+          0.027
         ],
         "normal": [
           0.4,
@@ -1007,9 +1007,9 @@
       "anchor": {
         "frame": "neck.R",
         "local": [
-          0.02,
-          0.015,
-          -0.005
+          0.0,
+          0.085,
+          0.027
         ],
         "normal": [
           0.5,
@@ -1062,9 +1062,9 @@
       "anchor": {
         "frame": "head.R",
         "local": [
-          0.02,
-          -0.01,
-          0.04
+          0.04,
+          0.03,
+          0.055
         ],
         "normal": [
           0.2,
@@ -1119,9 +1119,9 @@
       "anchor": {
         "frame": "head.R",
         "local": [
-          0.03,
-          -0.02,
-          0.045
+          0.045,
+          0.025,
+          0.065
         ],
         "normal": [
           0.3,

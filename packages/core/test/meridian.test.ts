@@ -41,6 +41,23 @@ describe('anatomy anchors', () => {
       expect(Math.abs(distanceToHandBody(world))).toBeLessThan(0.0005);
     }
   });
+
+  it('20 穴锚点都能解析到有限世界坐标', () => {
+    for (const point of meridian.points) {
+      const world = resolveAnchor(point);
+      expect(world).toHaveLength(3);
+      for (const value of world) expect(Number.isFinite(value)).toBe(true);
+    }
+  });
+
+  it('手/前臂/上臂/肩的 16 个锚点已标定，颈/头 4 个仍为示意', () => {
+    const authored = meridian.points.filter((point) => point.anchorStatus === 'authored');
+    expect(authored.map((point) => point.code)).toEqual([
+      'LI1', 'LI2', 'LI3', 'LI4', 'LI5', 'LI6', 'LI7', 'LI8',
+      'LI9', 'LI10', 'LI11', 'LI12', 'LI13', 'LI14', 'LI15', 'LI16',
+    ]);
+    expect(meridian.points.filter((point) => point.anchorStatus === 'placeholder')).toHaveLength(4);
+  });
 });
 
 describe('meridian route', () => {

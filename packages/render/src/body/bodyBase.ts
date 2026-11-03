@@ -12,6 +12,7 @@ import {
 export interface BodyView {
   group: THREE.Group;
   setVisible(visible: boolean): void;
+  setEmphasis(enabled: boolean): void;
   dispose(): void;
 }
 
@@ -48,11 +49,18 @@ export function createBodyView(options: {
 
   group.add(createForearm(skinMaterial));
   group.add(createUpperArm(skinMaterial));
+  group.add(createNeck(skinMaterial));
+  group.add(createHead(skinMaterial));
 
   return {
     group,
     setVisible(visible: boolean) {
       group.visible = visible;
+    },
+    setEmphasis(enabled: boolean) {
+      const opacity = enabled ? 0.58 : 0.34;
+      palmMaterial.opacity = opacity;
+      skinMaterial.opacity = opacity;
     },
     dispose() {
       group.traverse((child) => {
@@ -302,25 +310,49 @@ function createForearm(material: THREE.Material): THREE.Mesh {
   return mesh;
 }
 
-function createUpperArm(material: THREE.Material): THREE.Mesh {
+function createNeck(material: THREE.Material): THREE.Mesh {
+  const geometry = new THREE.CylinderGeometry(0.029, 0.034, 0.1, 20, 1, true);
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(-0.46, 0.105, 0.01);
+  mesh.name = 'Neck';
+  mesh.frustumCulled = false;
+  return mesh;
+}
+
+function createHead(material: THREE.Material): THREE.Mesh {
+  const geometry = new THREE.SphereGeometry(1, 28, 20);
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.scale.set(0.062, 0.072, 0.062);
+  mesh.position.set(-0.46, 0.18, 0.015);
+  mesh.name = 'Head';
+  mesh.frustumCulled = false;
+  return mesh;
+}
+
+function createUpperArm(material: THREE.Material): THREE.Group {
   const from = new THREE.Vector3(-0.255, 0, 0);
   const to = new THREE.Vector3(-0.46, 0.035, 0.01);
   const dir = new THREE.Vector3().subVectors(to, from);
   const length = dir.length();
   dir.normalize();
 
+  const group = new THREE.Group();
+  group.name = 'UpperArm';
+
   const geometry = new THREE.CapsuleGeometry(0.034, Math.max(0.01, length - 0.02), 6, 18);
   const mesh = new THREE.Mesh(geometry, material);
   mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
   mesh.position.copy(from).addScaledVector(dir, length * 0.5);
-  mesh.name = 'UpperArm';
+  mesh.name = 'UpperArmMesh';
   mesh.frustumCulled = false;
+  group.add(mesh);
 
+  // 肩球放在世界坐标的肩点，避免作为上臂 mesh 的子节点被二次变换
   const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.042, 20, 14), material);
   shoulder.position.copy(to);
   shoulder.name = 'Shoulder';
-  mesh.add(shoulder);
-  return mesh;
+  group.add(shoulder);
+  return group;
 }
 
 export { SKIN_SHADOW };

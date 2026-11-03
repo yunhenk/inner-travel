@@ -18,10 +18,19 @@ export interface Frame {
 
 export const HAND_FRAME: Frame = { name: 'hand.R', origin: [0, 0, 0] };
 export const FOREARM_FRAME: Frame = { name: 'forearm.R', origin: [-0.255, 0, 0] };
+/** 上臂帧原点在肘，+x 朝向手，向肩为 -x */
+export const UPPERARM_FRAME: Frame = { name: 'upperarm.R', origin: [-0.255, 0, 0] };
+export const SHOULDER_FRAME: Frame = { name: 'shoulder.R', origin: [-0.46, 0.035, 0.01] };
+export const NECK_FRAME: Frame = { name: 'neck.R', origin: [-0.46, 0.06, 0.01] };
+export const HEAD_FRAME: Frame = { name: 'head.R', origin: [-0.46, 0.16, 0.01] };
 
 export const FRAMES: Record<string, Frame> = {
   [HAND_FRAME.name]: HAND_FRAME,
   [FOREARM_FRAME.name]: FOREARM_FRAME,
+  [UPPERARM_FRAME.name]: UPPERARM_FRAME,
+  [SHOULDER_FRAME.name]: SHOULDER_FRAME,
+  [NECK_FRAME.name]: NECK_FRAME,
+  [HEAD_FRAME.name]: HEAD_FRAME,
 };
 
 export const PALM = {

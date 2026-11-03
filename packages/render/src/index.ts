@@ -3,6 +3,7 @@ export * from './terrain/TerrainView.js';
 export * from './water/waterMaterial.js';
 export * from './water/WaterView.js';
 export * from './body/bodyBase.js';
+export * from './body/BodyAnchors.js';
 export * from './markers/MeridianMarkers.js';
 export * from './mist/MistView.js';
 export * from './camera/CameraRig.js';

@@ -10,6 +10,7 @@ import {
 import { CorridorService } from './corridorService.js';
 import {
   CameraRig,
+  createBodyAnchorView,
   createBodyView,
   createMarkerView,
   createMistView,
@@ -17,6 +18,7 @@ import {
   createQiView,
   createTerrainView,
   createWaterView,
+  type BodyAnchorView,
   type BodyView,
   type MarkerView,
   type MistView,
@@ -66,6 +68,7 @@ interface Layers {
   press: PressView;
   markers: MarkerView;
   mist: MistView;
+  anchors: BodyAnchorView;
 }
 
 export class SceneHost {
@@ -89,6 +92,7 @@ export class SceneHost {
   private readonly pressNormal = new THREE.Vector3(0, 1, 0);
   private pressActive = false;
   private pressStrength = 0;
+  private overview = false;
   private pointerStart: { x: number; y: number } | null = null;
   private pressTimer: number | null = null;
   private lastTime = 0;
@@ -224,6 +228,7 @@ export class SceneHost {
     const markers = createMarkerView(corridor.field.route, corridor.field);
     const qi = createQiView(corridor.field);
     const press = createPressView(corridor.field.palette.glow);
+    const anchors = createBodyAnchorView(this.meridian.points, corridor.field.palette.glow);
     const body = createBodyView({
       zc0: zCenterAt(corridor, -0.006),
       zc1: zCenterAt(corridor, 0.098),
@@ -243,8 +248,9 @@ export class SceneHost {
       markers.group,
       qi.group,
       press.group,
+      anchors.group,
     );
-    return { terrain, water, body, markers, mist, qi, press };
+    return { terrain, water, body, markers, mist, qi, press, anchors };
   }
 
   private disposeLayers(): void {
@@ -257,6 +263,7 @@ export class SceneHost {
       this.layers.markers.group,
       this.layers.qi.group,
       this.layers.press.group,
+      this.layers.anchors.group,
     );
     this.layers.terrain.dispose();
     this.layers.water.dispose();
@@ -265,9 +272,11 @@ export class SceneHost {
     this.layers.qi.dispose();
     this.layers.press.dispose();
     this.layers.body.dispose();
+    this.layers.anchors.dispose();
   }
 
   setMode(mode: ViewMode): void {
+    if (this.overview) this.setOverview(false);
     this.mode = mode;
     if (mode !== 'fly') this.rig.endTour();
     this.rig.setMode(mode);
@@ -307,6 +316,16 @@ export class SceneHost {
     this.rig.reset();
   }
 
+  setOverview(enabled: boolean): void {
+    if (this.overview === enabled) return;
+    this.overview = enabled;
+    if (this.scene.fog instanceof THREE.FogExp2) {
+      this.scene.fog.density = enabled ? 0.45 : this.params.fogDensity;
+    }
+    this.rig.setOverview(enabled);
+    this.applyVisibility();
+  }
+
   /**
    * 标签开关在所有镜头生效；穴位环只在观/逐穴巡游显示，
    * 普通「游」保持干净画面（除非用户主动打开标签）。
@@ -323,6 +342,20 @@ export class SceneHost {
 
   private applyVisibility(): void {
     if (!this.layers) return;
+    if (this.overview) {
+      this.layers.terrain.group.visible = false;
+      this.layers.water.group.visible = false;
+      this.layers.qi.group.visible = false;
+      this.layers.mist.group.visible = false;
+      this.layers.markers.group.visible = false;
+      this.layers.body.group.visible = true;
+      this.layers.body.setEmphasis(true);
+      this.layers.anchors.group.visible = true;
+      this.layers.anchors.setActive(this.activeCode);
+      return;
+    }
+    this.layers.body.setEmphasis(false);
+    this.layers.anchors.group.visible = false;
     this.layers.terrain.group.visible = this.visibility.terrain;
     this.layers.terrain.setInk(this.visibility.ink);
     this.layers.water.group.visible = this.visibility.water;
@@ -433,10 +466,13 @@ export class SceneHost {
         this.activeCode = stop.code;
         this.onStopChange?.(stop.code);
       }
-      layers.body.group.visible = this.visibility.body && this.mode === 'observe';
-      this.updateMarkerVisibility();
-      const near = this.camera.position.distanceTo(this.heguVec) < 0.045;
-      layers.mist.group.visible = this.visibility.mist && !near;
+      layers.anchors.setActive(this.activeCode);
+      if (!this.overview) {
+        layers.body.group.visible = this.visibility.body && this.mode === 'observe';
+        this.updateMarkerVisibility();
+        const near = this.camera.position.distanceTo(this.heguVec) < 0.045;
+        layers.mist.group.visible = this.visibility.mist && !near;
+      }
       layers.water.update(time);
       layers.mist.update(time);
       const qiOpacity = this.mode === 'fly' ? 0.8 : this.mode === 'dwell' ? 0.62 : 0.42;
@@ -512,7 +548,7 @@ export class SceneHost {
   }
 
   private beginPress(clientX: number, clientY: number): void {
-    if (!this.layers) return;
+    if (!this.layers || this.overview) return;
     const rect = this.renderer.domElement.getBoundingClientRect();
     this.pointerNdc.set(
       ((clientX - rect.left) / rect.width) * 2 - 1,

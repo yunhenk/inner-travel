@@ -29,6 +29,7 @@ export class CameraRig {
   private direction = 1;
   private initializedFly = false;
   private touring = false;
+  private overview = false;
   private tourTargetS = 0;
   private tourLookDir = 1;
   private tourArrived = false;
@@ -71,12 +72,32 @@ export class CameraRig {
 
   /** 回到当前模式的默认机位 */
   reset(): void {
+    if (this.overview) {
+      this.applyOverview();
+      return;
+    }
     this.applyMode(this.mode);
+  }
+
+  /** 全身示意视角：看手 → 前臂 → 肩 → 颈/头，用于 20 穴总览 */
+  setOverview(enabled: boolean): void {
+    if (this.overview === enabled) return;
+    this.overview = enabled;
+    if (enabled) {
+      this.applyOverview();
+    } else {
+      this.controls.enabled = this.mode !== 'fly';
+      this.applyMode(this.mode);
+    }
+  }
+
+  isOverview(): boolean {
+    return this.overview;
   }
 
   /** 当前关注弧长：游为相机所在 s，观/驻为合谷 */
   getFocusS(): number {
-    return this.mode === 'fly' ? this.s : this.field.heguS;
+    return this.mode === 'fly' && !this.overview ? this.s : this.field.heguS;
   }
 
   /** 进入逐穴巡游：相机沿 s 滑向目标，不再乒乓往返 */
@@ -114,7 +135,7 @@ export class CameraRig {
   setField(field: TerrainField, hegu: THREE.Vector3): void {
     this.field = field;
     this.hegu.copy(hegu);
-    if (this.mode === 'observe' || this.mode === 'dwell') {
+    if (!this.overview && (this.mode === 'observe' || this.mode === 'dwell')) {
       this.controls.target.copy(hegu);
     }
   }
@@ -139,11 +160,23 @@ export class CameraRig {
   }
 
   update(dt: number, elapsed: number): void {
+    if (this.overview) {
+      this.camera.lookAt(this.controls.target);
+      return;
+    }
     if (this.mode === 'fly') {
       this.updateFly(dt, elapsed);
       return;
     }
     this.controls.update();
+  }
+
+  private applyOverview(): void {
+    this.controls.enabled = false;
+    this.camera.position.set(0.34, 0.3, 0.62);
+    this.controls.target.set(-0.17, 0.08, 0.015);
+    this.camera.lookAt(this.controls.target);
+    this.camera.updateProjectionMatrix();
   }
 
   private updateFly(dt: number, elapsed: number): void {

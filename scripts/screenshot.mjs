@@ -64,6 +64,7 @@ const shots = [
   ['archetype-pool', '?mode=observe&labels=1&archetype=pool'],
   ['press', '?mode=observe&labels=1&archetype=auto', pressScript],
   ['body-context', '?mode=observe&body=1&labels=1&archetype=auto'],
+  ['body20', '?mode=observe&overview=1&labels=1&archetype=auto'],
   ['clean-fly', '?mode=fly&ui=0&archetype=auto'],
 ];
 

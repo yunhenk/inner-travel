@@ -33,6 +33,8 @@ export interface PanelProps {
   onTourSelect(index: number): void;
   onParams(params: Partial<SceneParams>): void;
   onVisibility(visibility: Partial<SceneVisibility>): void;
+  overview: boolean;
+  onOverview(enabled: boolean): void;
   onReset(): void;
 }
 
@@ -162,6 +164,11 @@ export function Panel(props: PanelProps) {
       <details className="panel-section collapsible">
         <summary>图层</summary>
         <div className="toggles">
+          <Toggle
+            label="全身"
+            checked={props.overview}
+            onChange={props.onOverview}
+          />
           <Toggle
             label="地形"
             checked={visibility.terrain}
