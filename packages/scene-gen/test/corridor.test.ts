@@ -62,6 +62,24 @@ describe('合谷走廊', () => {
     }
   });
 
+  it('自适应 LOD 在焦点附近更密，且端点完整', () => {
+    const focus = corridor.field.heguS;
+    const adaptive = buildCorridor(route, {
+      sFocus: focus,
+      sFine: 0.0004,
+      sCoarse: 0.0022,
+    });
+    const values = adaptive.sValues;
+    expect(values[0]).toBeCloseTo(adaptive.field.domain.s0, 9);
+    expect(values.at(-1)).toBeCloseTo(adaptive.field.domain.s1, 9);
+    for (let i = 1; i < values.length; i++) expect(values[i]!).toBeGreaterThan(values[i - 1]!);
+    const near = values.filter((s) => Math.abs(s - focus) < 0.01);
+    const far = values.filter((s) => Math.abs(s - focus) > 0.035);
+    const nearStep = (near.at(-1)! - near[0]!) / Math.max(1, near.length - 1);
+    const farStep = (far.at(-1)! - far[0]!) / Math.max(1, far.length - 1);
+    expect(nearStep).toBeLessThan(farStep);
+  });
+
   it('同一参数生成完全一致（确定性）', () => {
     const again = buildCorridor(route);
     expect(again.terrain.positions).toEqual(corridor.terrain.positions);

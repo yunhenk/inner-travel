@@ -229,12 +229,13 @@ export class SceneHost {
     );
   }
 
-  private windowOptions(window: { s0: number; s1: number }) {
-    return this.segmentOptions(window.s0, window.s1);
+  private windowOptions(window: { s0: number; s1: number; centerS?: number }) {
+    return this.segmentOptions(window.s0, window.s1, window.centerS);
   }
 
-  private segmentOptions(s0: number, s1: number) {
+  private segmentOptions(s0: number, s1: number, focusS?: number) {
     return {
+      ...(focusS === undefined ? {} : { sFocus: focusS, sFine: 0.0005, sCoarse: 0.0016 }),
       valleyDepth: this.params.valleyDepth,
       riverWidth: this.params.riverWidth,
       relief: this.params.relief,

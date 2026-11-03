@@ -8,6 +8,10 @@ export interface CorridorBuildOptions extends Partial<TerrainOptions> {
   dtCoarse?: number;
   /** 横向细网格步长（谷底） */
   dtFine?: number;
+  /** 自适应 LOD：焦点弧长；给定后靠近焦点使用 sFine，远处用 sCoarse */
+  sFocus?: number;
+  sFine?: number;
+  sCoarse?: number;
 }
 
 export interface MeshData {
@@ -78,11 +82,8 @@ export function buildCorridorData(
   const dtCoarse = options.dtCoarse ?? DEFAULT_BUILD.dtCoarse;
   const dtFine = options.dtFine ?? DEFAULT_BUILD.dtFine;
 
-  const rows = Math.max(2, Math.ceil((s1 - s0) / ds) + 1);
-  const sValues: number[] = [];
-  for (let r = 0; r < rows; r++) {
-    sValues.push(s0 + ((s1 - s0) * r) / (rows - 1));
-  }
+  const sValues = buildSValues(s0, s1, ds, options.sFocus, options.sFine, options.sCoarse);
+  const rows = sValues.length;
 
   const tValues = buildTValues(tMin, tMax, -0.0115, 0.0155, dtCoarse, dtFine);
   const cols = tValues.length;
@@ -165,6 +166,31 @@ export function buildCorridorData(
     },
     hegu: field.pointAt(field.heguS, 0),
   };
+}
+
+function buildSValues(
+  s0: number,
+  s1: number,
+  baseStep: number,
+  focus?: number,
+  fine = baseStep,
+  coarse = baseStep,
+): number[] {
+  if (focus === undefined) {
+    const count = Math.max(2, Math.ceil((s1 - s0) / baseStep) + 1);
+    return Array.from({ length: count }, (_, i) => s0 + ((s1 - s0) * i) / (count - 1));
+  }
+  const values: number[] = [s0];
+  const band = Math.max(0.01, (s1 - s0) * 0.35);
+  let s = s0;
+  for (let guard = 0; guard < 10000; guard++) {
+    const t = smoothstep(0, band, Math.abs(s - focus));
+    const step = Math.max(1e-5, fine + (coarse - fine) * t);
+    s = Math.min(s1, s + step);
+    values.push(s);
+    if (s >= s1) break;
+  }
+  return values;
 }
 
 function buildTValues(
