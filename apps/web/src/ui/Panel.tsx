@@ -1,6 +1,7 @@
 import type { ViewMode } from '@inner/render';
 import type { SceneParams, SceneVisibility } from '../scene/SceneHost.js';
 import type { Acupoint } from '@inner/core';
+import type { TourStateName } from '../journey/tourMachine.js';
 
 const TAGLINES: Record<string, string> = {
   LI1: '一线初泉',
@@ -23,7 +24,12 @@ export interface PanelProps {
   fps: number;
   triangles: number;
   master: Acupoint;
+  tourState: TourStateName;
+  tourIndex: number;
+  tourStops: Acupoint[];
   onMode(mode: ViewMode): void;
+  onTourStart(): void;
+  onTourSelect(index: number): void;
   onParams(params: Partial<SceneParams>): void;
   onVisibility(visibility: Partial<SceneVisibility>): void;
   onReset(): void;
@@ -59,6 +65,39 @@ export function Panel(props: PanelProps) {
               <span className="segment-hint">{item.hint}</span>
             </button>
           ))}
+        </div>
+      </section>
+
+      <section className="panel-section">
+        <h3>逐穴巡游</h3>
+        <div className="tour-head">
+          <button type="button" className="tour-start" onClick={props.onTourStart}>
+            {props.tourState === 'moving' || props.tourState === 'holding'
+              ? '结束巡游'
+              : props.tourState === 'finished'
+                ? '再巡一次'
+                : '开始巡游'}
+          </button>
+          <span className="tour-status" data-state={props.tourState}>
+            {tourStatus(props.tourState, props.tourStops[props.tourIndex]?.name)}
+          </span>
+        </div>
+        <div className="tour-stops" role="group" aria-label="巡游站点">
+          {props.tourStops.map((stop, index) => {
+            const active = index === props.tourIndex && props.tourState !== 'idle';
+            return (
+              <button
+                key={stop.code}
+                type="button"
+                className={active ? 'tour-stop active' : 'tour-stop'}
+                onClick={() => props.onTourSelect(index)}
+                aria-pressed={active}
+              >
+                <span className="tour-name">{stop.name}</span>
+                <span className="tour-code">{stop.code}</span>
+              </button>
+            );
+          })}
         </div>
       </section>
 
@@ -228,6 +267,19 @@ function Toggle(props: {
       <span>{props.label}</span>
     </label>
   );
+}
+
+function tourStatus(state: TourStateName, name?: string): string {
+  switch (state) {
+    case 'moving':
+      return `前往 ${name ?? ''}`;
+    case 'holding':
+      return `停驻 ${name ?? ''}`;
+    case 'finished':
+      return '巡游完成';
+    default:
+      return '三间 → 合谷 → 阳溪';
+  }
 }
 
 function formatCount(value: number): string {

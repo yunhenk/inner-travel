@@ -3,6 +3,7 @@ import { writeFile } from 'node:fs/promises';
 const url = process.argv[2] ?? 'http://127.0.0.1:5173/';
 const out = process.argv[3] ?? '/tmp/shot.png';
 const waitMs = Number(process.argv[4] ?? 6000);
+const postWait = Number(process.env.POST_WAIT ?? 800);
 const port = Number(process.env.CDP_PORT ?? 9222);
 
 const bust = (url.includes('?') ? '&' : '?') + '_r=' + Date.now();
@@ -64,7 +65,7 @@ if (process.env.EVAL) {
     awaitPromise: true,
   });
   console.log('EVAL', JSON.stringify(res.result?.value ?? res.exceptionDetails ?? null));
-  await new Promise((r) => setTimeout(r, 800));
+  await new Promise((r) => setTimeout(r, postWait));
 }
 
 const probe = await send('Runtime.evaluate', {

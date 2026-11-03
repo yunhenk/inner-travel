@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useActor } from '@xstate/react';
 import { findPoint, parseMeridian } from '@inner/core';
 import type { ViewMode } from '@inner/render';
+import { TOUR_STOPS, tourMachine, type TourStateName } from './journey/tourMachine.js';
 import meridianJson from '../../../content/meridians/hand-yangming-large-intestine.json';
 import { SceneHost } from './scene/SceneHost.js';
 import type { SceneParams, SceneVisibility } from './scene/SceneHost.js';
@@ -40,6 +42,14 @@ export function App() {
   const master = useMemo(() => findPoint(meridian, activeCode), [meridian, activeCode]);
   const hideUi = query.get('ui') === '0';
 
+  const [tourSnapshot, sendTour] = useActor(tourMachine);
+  const tourState = tourSnapshot.value as TourStateName;
+  const tourIndex = tourSnapshot.context.index;
+  const tourStops = useMemo(
+    () => TOUR_STOPS.map((code) => findPoint(meridian, code)),
+    [meridian],
+  );
+
   const containerRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<SceneHost | null>(null);
 
@@ -77,6 +87,7 @@ export function App() {
         onReady: () => setReady(true),
         onStopChange: setActiveCode,
         onPressChange: setPressing,
+        onTourArrive: () => sendTour({ type: 'ARRIVED' }),
       });
       hostRef.current = host;
       setTriangles(host.getTriangleCount());
@@ -109,18 +120,58 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    if (tourState === 'moving') {
+      hostRef.current?.goToStop(TOUR_STOPS[tourIndex]!);
+    }
+  }, [tourState, tourIndex]);
+
+  const handleMode = useCallback(
+    (next: ViewMode) => {
+      if (tourState !== 'idle') {
+        sendTour({ type: 'STOP' });
+        hostRef.current?.stopTour();
+      }
+      setMode(next);
+    },
+    [sendTour, tourState],
+  );
+
+  const handleTourStart = useCallback(() => {
+    if (tourState === 'moving' || tourState === 'holding') {
+      sendTour({ type: 'STOP' });
+      hostRef.current?.stopTour();
+      setMode('observe');
+      return;
+    }
+    setMode('fly');
+    hostRef.current?.startTour();
+    sendTour({ type: 'START' });
+  }, [sendTour, tourState]);
+
+  const handleTourSelect = useCallback(
+    (index: number) => {
+      if (tourState === 'idle' || tourState === 'finished') {
+        setMode('fly');
+        hostRef.current?.startTour();
+      }
+      sendTour({ type: 'SELECT', index });
+    },
+    [sendTour, tourState],
+  );
+
+  useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       const target = event.target as HTMLElement | null;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
-      if (event.key === '1') setMode('observe');
-      else if (event.key === '2') setMode('fly');
-      else if (event.key === '3') setMode('dwell');
+      if (event.key === '1') handleMode('observe');
+      else if (event.key === '2') handleMode('fly');
+      else if (event.key === '3') handleMode('dwell');
       else if (event.key.toLowerCase() === 'r') hostRef.current?.resetCamera();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [handleMode]);
 
   return (
     <div className={hideUi ? 'app app-bare' : 'app'}>
@@ -151,7 +202,12 @@ export function App() {
             fps={fps}
             triangles={triangles}
             master={master}
-            onMode={setMode}
+            tourState={tourState}
+            tourIndex={tourIndex}
+            tourStops={tourStops}
+            onMode={handleMode}
+            onTourStart={handleTourStart}
+            onTourSelect={handleTourSelect}
             onParams={(next) => setParams((prev) => ({ ...prev, ...next }))}
             onVisibility={(next) => setVisibility((prev) => ({ ...prev, ...next }))}
             onReset={handleReset}

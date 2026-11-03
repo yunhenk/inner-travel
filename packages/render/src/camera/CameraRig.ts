@@ -28,6 +28,10 @@ export class CameraRig {
   private s: number;
   private direction = 1;
   private initializedFly = false;
+  private touring = false;
+  private tourTargetS = 0;
+  private tourLookDir = 1;
+  private tourArrived = false;
   private tmpTarget = new THREE.Vector3();
   private reducedMotion: boolean;
 
@@ -75,6 +79,37 @@ export class CameraRig {
     return this.mode === 'fly' ? this.s : this.field.heguS;
   }
 
+  /** 进入逐穴巡游：相机沿 s 滑向目标，不再乒乓往返 */
+  beginTour(): void {
+    this.touring = true;
+    this.tourArrived = false;
+    this.tourLookDir = 1;
+  }
+
+  /** 设置巡游目标弧长；靠近走廊端头时改为回望谷内 */
+  goTo(s: number): void {
+    const { s0, s1 } = this.field.domain;
+    this.tourTargetS = THREE.MathUtils.clamp(s, s0 + 0.004, s1 - 0.008);
+    this.tourLookDir = this.tourTargetS > s1 - 0.02 ? -1 : 1;
+    this.tourArrived = false;
+  }
+
+  endTour(): void {
+    this.touring = false;
+    this.tourArrived = false;
+  }
+
+  isTouring(): boolean {
+    return this.touring;
+  }
+
+  /** 取走一次「已到达」事件 */
+  consumeTourArrival(): boolean {
+    if (!this.tourArrived) return false;
+    this.tourArrived = false;
+    return true;
+  }
+
   /** 地形参数变化后重绑地形场（走廊拓扑不变） */
   setField(field: TerrainField, hegu: THREE.Vector3): void {
     this.field = field;
@@ -113,21 +148,35 @@ export class CameraRig {
 
   private updateFly(dt: number, elapsed: number): void {
     const { s0, s1 } = this.field.domain;
-    const start = s0 + 0.02;
-    const end = s1 - 0.03;
-    const speed = this.reducedMotion ? 0.002 : 0.011;
-    this.s += speed * dt * this.direction;
-    if (this.s >= end) {
-      this.s = end;
-      this.direction = -1;
-    } else if (this.s <= start) {
-      this.s = start;
-      this.direction = 1;
+    const lookDir = this.touring ? this.tourLookDir : this.direction;
+
+    if (this.touring) {
+      const step = (this.reducedMotion ? 0.004 : 0.016) * dt;
+      const dist = this.tourTargetS - this.s;
+      if (Math.abs(dist) <= step) {
+        this.s = this.tourTargetS;
+        if (!this.tourArrived) this.tourArrived = true;
+      } else {
+        this.s += Math.sign(dist) * step;
+      }
+    } else {
+      const start = s0 + 0.02;
+      const end = s1 - 0.03;
+      const speed = this.reducedMotion ? 0.002 : 0.011;
+      this.s += speed * dt * this.direction;
+      if (this.s >= end) {
+        this.s = end;
+        this.direction = -1;
+      } else if (this.s <= start) {
+        this.s = start;
+        this.direction = 1;
+      }
     }
 
     const p = this.field.pointAt(this.s, 0);
+    const aheadDistance = this.touring ? 0.014 : 0.011;
     const ahead = this.field.pointAt(
-      THREE.MathUtils.clamp(this.s + 0.011 * this.direction, s0, s1),
+      THREE.MathUtils.clamp(this.s + aheadDistance * lookDir, s0 + 0.002, s1 - 0.002),
       0,
     );
 

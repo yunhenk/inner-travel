@@ -1,5 +1,5 @@
 import { execFile, spawn } from 'node:child_process';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, rm } from 'node:fs/promises';
 import { promisify } from 'node:util';
 
 const run = promisify(execFile);
@@ -58,20 +58,29 @@ const shots = [
   ['observe', '?mode=observe&labels=1'],
   ['fly', '?mode=fly'],
   ['dwell', '?mode=dwell'],
+  ['tour', '?mode=observe&labels=1', "document.querySelector('.tour-start').click()", 3200],
   ['press', '?mode=observe&labels=1', pressScript],
   ['body-context', '?mode=observe&body=1&labels=1'],
   ['clean-fly', '?mode=fly&ui=0'],
 ];
 
 try {
-  for (const [name, query, evalScript] of shots) {
+  for (const [name, query, evalScript, postWait] of shots) {
     const url = `${base}${query}`;
     const env = { ...process.env, CDP_PORT: String(port) };
     if (evalScript) env.EVAL = evalScript;
+    if (postWait) env.POST_WAIT = String(postWait);
     await run('node', ['scripts/cdp-shot.mjs', url, `docs/screenshots/${name}.png`, '7000'], {
       env,
       stdio: 'inherit',
     });
+  }
+
+  // 截图用 PNG 保证无损，再转成体积更小的 JPEG 供文档引用
+  for (const [name] of shots) {
+    const png = `docs/screenshots/${name}.png`;
+    await run('sips', ['-s', 'format', 'jpeg', '-s', 'formatOptions', '82', png, '--out', `docs/screenshots/${name}.jpg`]);
+    await rm(png);
   }
 } finally {
   server.kill('SIGTERM');

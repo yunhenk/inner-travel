@@ -50,6 +50,7 @@ export interface SceneHostOptions {
   onReady?: () => void;
   onStopChange?: (code: string) => void;
   onPressChange?: (active: boolean) => void;
+  onTourArrive?: () => void;
 }
 
 interface Layers {
@@ -73,6 +74,7 @@ export class SceneHost {
   private readonly onReady?: () => void;
   private readonly onStopChange?: (code: string) => void;
   private readonly onPressChange?: (active: boolean) => void;
+  private readonly onTourArrive?: () => void;
   private activeCode = 'LI4';
 
   private readonly raycaster = new THREE.Raycaster();
@@ -110,6 +112,7 @@ export class SceneHost {
     this.onReady = options.onReady;
     this.onStopChange = options.onStopChange;
     this.onPressChange = options.onPressChange;
+    this.onTourArrive = options.onTourArrive;
 
     const route = buildRoute(this.meridian, M0_CODES);
     this.corridor = buildCorridor(route, {
@@ -242,7 +245,23 @@ export class SceneHost {
 
   setMode(mode: ViewMode): void {
     this.mode = mode;
+    if (mode !== 'fly') this.rig.endTour();
     this.rig.setMode(mode);
+  }
+
+  startTour(): void {
+    this.setMode('fly');
+    this.rig.beginTour();
+  }
+
+  stopTour(): void {
+    this.rig.endTour();
+  }
+
+  goToStop(code: string): void {
+    const stop = this.corridor.field.route.stopAt(code);
+    const offset = code === 'LI5' ? -0.008 : code === 'LI3' ? 0.004 : 0;
+    this.rig.goTo(stop.s + offset);
   }
 
   setParams(params: Partial<SceneParams>): void {
@@ -346,6 +365,7 @@ export class SceneHost {
     const time = now / 1000;
 
     this.rig.update(dt, time);
+    if (this.rig.consumeTourArrival()) this.onTourArrive?.();
     const stop = this.corridor.field.route.nearestStop(this.rig.getFocusS());
     if (stop.code !== this.activeCode) {
       this.activeCode = stop.code;
