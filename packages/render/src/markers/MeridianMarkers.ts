@@ -4,6 +4,7 @@ import type { TerrainField } from '@inner/scene-gen';
 
 export interface MarkerView {
   group: THREE.Group;
+  setRingsVisible(visible: boolean): void;
   setLabelsVisible(visible: boolean): void;
   dispose(): void;
 }
@@ -16,6 +17,7 @@ export function createMarkerView(route: Route, field: TerrainField): MarkerView 
   const accent = new THREE.Color(route.meridian.palette.accent);
 
   const labels: THREE.Sprite[] = [];
+  const rings: THREE.Mesh[] = [];
   for (const stop of route.stops) {
     const ground = field.pointAt(stop.s, 0);
     const position = new THREE.Vector3(ground[0], ground[1] + 0.0004, ground[2]);
@@ -33,6 +35,7 @@ export function createMarkerView(route: Route, field: TerrainField): MarkerView 
     ring.rotation.x = Math.PI / 2;
     ring.name = `Anchor-${stop.code}`;
     group.add(ring);
+    rings.push(ring);
 
     const label = makeLabel(`${stop.name} ${stop.code}`, accent);
     label.position.copy(position).add(new THREE.Vector3(0, 0.0042, 0));
@@ -44,6 +47,9 @@ export function createMarkerView(route: Route, field: TerrainField): MarkerView 
 
   return {
     group,
+    setRingsVisible(visible: boolean) {
+      for (const ring of rings) ring.visible = visible;
+    },
     setLabelsVisible(visible: boolean) {
       for (const label of labels) label.visible = visible;
     },

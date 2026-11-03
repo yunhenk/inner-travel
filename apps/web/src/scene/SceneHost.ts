@@ -282,15 +282,27 @@ export class SceneHost {
     this.rig.reset();
   }
 
+  /**
+   * 标签开关在所有镜头生效；穴位环只在观/逐穴巡游显示，
+   * 普通「游」保持干净画面（除非用户主动打开标签）。
+   */
+  private updateMarkerVisibility(): void {
+    const showRings =
+      this.visibility.markers && (this.mode === 'observe' || this.rig.isTouring());
+    const showLabels = this.visibility.labels;
+    this.layers.markers.group.visible = showRings || showLabels;
+    this.layers.markers.setRingsVisible(showRings);
+    this.layers.markers.setLabelsVisible(showLabels);
+  }
+
   private applyVisibility(): void {
     if (!this.layers) return;
     this.layers.terrain.group.visible = this.visibility.terrain;
     this.layers.water.group.visible = this.visibility.water;
-    this.layers.body.group.visible = this.visibility.body;
+    this.layers.body.group.visible = this.visibility.body && this.mode === 'observe';
     this.layers.qi.group.visible = this.visibility.qi;
     this.layers.mist.group.visible = this.visibility.mist;
-    this.layers.markers.group.visible = this.visibility.markers;
-    this.layers.markers.setLabelsVisible(this.visibility.labels);
+    this.updateMarkerVisibility();
   }
 
   private rebuildTerrain(): void {
@@ -371,10 +383,8 @@ export class SceneHost {
       this.activeCode = stop.code;
       this.onStopChange?.(stop.code);
     }
-    const showContext = this.mode === 'observe';
-    this.layers.body.group.visible = this.visibility.body && showContext;
-    this.layers.markers.group.visible = this.visibility.markers && showContext;
-    this.layers.markers.setLabelsVisible(this.visibility.labels && showContext);
+    this.layers.body.group.visible = this.visibility.body && this.mode === 'observe';
+    this.updateMarkerVisibility();
     const near = this.camera.position.distanceTo(this.heguVec) < 0.045;
     this.layers.mist.group.visible = this.visibility.mist && !near;
     this.layers.water.update(time);
