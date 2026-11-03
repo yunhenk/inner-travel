@@ -124,6 +124,7 @@ export class SceneHost {
   private neighborToken = 0;
   private transitionCorridor: CorridorMeshData | null = null;
   private transitionTerrain: TerrainView | null = null;
+  private transitionWater: WaterView | null = null;
   private transitionToken = 0;
   private params: SceneParams;
   private visibility: SceneVisibility;
@@ -431,6 +432,7 @@ export class SceneHost {
         this.neighborLayers.water.group.visible = false;
       }
       if (this.transitionTerrain) this.transitionTerrain.group.visible = false;
+      if (this.transitionWater) this.transitionWater.group.visible = false;
       return;
     }
     this.layers.body.setEmphasis(false);
@@ -448,6 +450,9 @@ export class SceneHost {
     }
     if (this.transitionTerrain) {
       this.transitionTerrain.group.visible = this.visibility.terrain;
+    }
+    if (this.transitionWater) {
+      this.transitionWater.group.visible = this.visibility.water;
     }
     this.updateMarkerVisibility();
   }
@@ -533,8 +538,8 @@ export class SceneHost {
       relief: this.params.relief * 0.16,
       valleyDepth: this.params.valleyDepth * 0.45,
       ds: 0.0015,
-      dtCoarse: 0.003,
-      dtFine: 0.0015,
+      dtCoarse: 0.0012,
+      dtFine: 0.0003,
     };
     const field = new TerrainField(this.route, options);
     const token = ++this.transitionToken;
@@ -550,18 +555,27 @@ export class SceneHost {
   private mountTransition(corridor: CorridorMeshData): void {
     this.disposeTransition();
     const terrain = createTerrainView(corridor);
+    const water = createWaterView(corridor);
     terrain.setFogDensity(this.params.fogDensity);
+    water.setFogDensity(this.params.fogDensity);
     this.transitionCorridor = corridor;
     this.transitionTerrain = terrain;
-    this.scene.add(terrain.group);
+    this.transitionWater = water;
+    this.scene.add(terrain.group, water.group);
     this.applyVisibility();
   }
 
   private disposeTransition(): void {
-    if (!this.transitionTerrain) return;
-    this.scene.remove(this.transitionTerrain.group);
-    this.transitionTerrain.dispose();
+    if (this.transitionTerrain) {
+      this.scene.remove(this.transitionTerrain.group);
+      this.transitionTerrain.dispose();
+    }
+    if (this.transitionWater) {
+      this.scene.remove(this.transitionWater.group);
+      this.transitionWater.dispose();
+    }
     this.transitionTerrain = null;
+    this.transitionWater = null;
     this.transitionCorridor = null;
   }
 
